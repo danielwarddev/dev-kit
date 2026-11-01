@@ -51,3 +51,14 @@ Custom Rosyln analyzers (and code fixes where relevant) with some standards I li
 | [MudBlazor](templates/AiReadyMudBlazorApp) | `ai-ready-mudblazor` | A Blazor app with MudBlazor set up and an xUnit test project with bUnit. |
 
 Note: The MudBlazor test project currently specifies AngleSharp 1.5.0 to avoid the vulnerable 1.4.0 dependency selected by bUnit 2.7.2 (GHSA-pgww-w46g-26qg).
+
+## Shared configuration
+
+There are some files that projects or solutions share and should always be copied over, in addition to the agent skills.
+
+| File | Description |
+| --- | --- |
+| `.editorconfig` | C# preferences.`DWARD0006` is on for test projects. |
+| `Directory.Build.props` | Always treat warnings as errors. |
+| `AGENTS.md` | AI instructions; self-explanatory. |
+| `CLAUDE.md` | Just points to `@AGENTS.md`, if using Claude Code. |

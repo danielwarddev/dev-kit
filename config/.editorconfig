@@ -1,0 +1,60 @@
+root = true
+
+[*]
+charset = utf-8
+
+[*.cs]
+dotnet_diagnostic.DWARD0003.severity = error
+dotnet_diagnostic.DWARD0004.severity = error
+dotnet_diagnostic.DWARD0005.severity = error
+dotnet_diagnostic.CA1031.severity = error
+dotnet_diagnostic.CA2200.severity = error
+dotnet_diagnostic.CA2016.severity = error
+dotnet_diagnostic.IDE1006.severity = error
+
+dotnet_style_prefer_collection_expression = when_types_exactly_match
+dotnet_diagnostic.IDE0300.severity = error
+dotnet_diagnostic.IDE0301.severity = error
+dotnet_diagnostic.IDE0302.severity = error
+dotnet_diagnostic.IDE0303.severity = error
+dotnet_diagnostic.IDE0304.severity = error
+dotnet_diagnostic.IDE0305.severity = none
+dotnet_diagnostic.IDE0306.severity = error
+
+dotnet_naming_style.pascal_case.capitalization = pascal_case
+dotnet_naming_style.private_field.capitalization = camel_case
+dotnet_naming_style.private_field.required_prefix = _
+
+dotnet_naming_symbols.types.applicable_kinds = class, struct, interface, enum, delegate
+dotnet_naming_symbols.types.applicable_accessibilities = *
+dotnet_naming_rule.types.symbols = types
+dotnet_naming_rule.types.style = pascal_case
+dotnet_naming_rule.types.severity = error
+
+dotnet_naming_symbols.members.applicable_kinds = property, method, field, event
+dotnet_naming_symbols.members.applicable_accessibilities = *
+dotnet_naming_rule.members.symbols = members
+dotnet_naming_rule.members.style = pascal_case
+dotnet_naming_rule.members.severity = error
+
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+dotnet_naming_rule.private_fields.symbols = private_fields
+dotnet_naming_rule.private_fields.style = private_field
+dotnet_naming_rule.private_fields.severity = error
+
+dotnet_naming_symbols.private_constants.applicable_kinds = field
+dotnet_naming_symbols.private_constants.applicable_accessibilities = private
+dotnet_naming_symbols.private_constants.required_modifiers = const
+dotnet_naming_rule.private_constants.symbols = private_constants
+dotnet_naming_rule.private_constants.style = pascal_case
+dotnet_naming_rule.private_constants.severity = error
+
+[*.UnitTests/**.cs]
+dotnet_diagnostic.DWARD0006.severity = error
+
+[*.Core.Tests/**.cs]
+dotnet_diagnostic.DWARD0006.severity = error
+
+[*/Tests/**.cs]
+dotnet_diagnostic.DWARD0006.severity = error

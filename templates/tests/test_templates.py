@@ -76,6 +76,14 @@ class TemplateConsumerTests(unittest.TestCase):
                     self.assertEqual(list(output.rglob("*.dll")), [])
                     self.assertEqual(list(output.rglob("*.nupkg")), [])
                     self.assertEqual(list(output.rglob("*.targets")), [])
+                    for filename in (".editorconfig", "Directory.Build.props", "AGENTS.md", "CLAUDE.md"):
+                        generated = output / filename
+                        self.assertEqual(generated.exists(), not skip_solution)
+                        if not skip_solution:
+                            self.assertEqual(
+                                generated.read_bytes(),
+                                (self.kit / "config" / filename).read_bytes(),
+                            )
                     for filename in ("plan.md", "todo.md", "settings.local.json"):
                         self.assertEqual(list(output.rglob(filename)), [])
                     skills = output / ".claude" / "skills"
@@ -111,6 +119,32 @@ class TemplateConsumerTests(unittest.TestCase):
                     project = next(
                         item for item in projects if ".UnitTests" not in item.stem
                     )
+                    if not skip_solution:
+                        production_probe = project.parent / "NamingProbe.cs"
+                        production_probe.write_text(
+                            "public class NamingProbe { public int Read(int sut) => sut; }\n",
+                            encoding="utf-8",
+                        )
+                        test_project = next(
+                            item for item in projects if ".UnitTests" in item.stem
+                        )
+                        test_probe = test_project.parent / "NamingProbe.cs"
+                        test_probe.write_text(
+                            "public class NamingProbe { public int Read(int sut) => sut; }\n",
+                            encoding="utf-8",
+                        )
+                        result = run_dotnet(
+                            output, "build", project, "--no-restore", "-v", "quiet",
+                        )
+                        self.assert_succeeded(result)
+                        self.assertNotIn("DWARD0006", result.stdout + result.stderr)
+                        result = run_dotnet(
+                            output, "build", test_project, "--no-restore", "-v", "quiet",
+                        )
+                        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+                        self.assertIn("DWARD0006", result.stdout + result.stderr)
+                        production_probe.unlink()
+                        test_probe.unlink()
                     probe = project.parent / "AnalyzerProbe.cs"
                     probe.write_text(
                         "public sealed class AnalyzerProbe { }\n", encoding="utf-8",
@@ -122,11 +156,11 @@ class TemplateConsumerTests(unittest.TestCase):
                     self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
                     self.assertIn("DWARD0004", result.stdout + result.stderr)
                     configuration = output / ".editorconfig"
-                    configuration.write_text(
-                        "root = true\n[*.cs]\n"
-                        "dotnet_diagnostic.DWARD0004.severity = none\n",
-                        encoding="utf-8",
-                    )
+                    with configuration.open("a", encoding="utf-8") as file:
+                        file.write(
+                            "\n[*.cs]\n"
+                            "dotnet_diagnostic.DWARD0004.severity = none\n",
+                        )
                     result = run_dotnet(
                         output, "build", project, "--no-restore", "-v", "quiet",
                         "-p:TreatWarningsAsErrors=true",

@@ -40,6 +40,11 @@
   },
   "sources": [
     {
+      "source": "../../config",
+      "include": [ ".editorconfig", "Directory.Build.props", "AGENTS.md", "CLAUDE.md" ],
+      "condition": "(!SkipSolution)"
+    },
+    {
       "modifiers": [
         {
           "exclude": [
