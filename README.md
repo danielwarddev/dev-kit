@@ -4,6 +4,8 @@ A collection of the .NET tooling I use across my projects. The skills are meant 
 
 ## Skills
 
+Common skills I use across my .NET projects. Some are Godot-specific, so I use a script to install the skills, which removes the Godot glossary entries from AGENTS.md if it's not a Godot project.
+
 | Skill | Description |
 | --- | --- |
 | [aseprite](skills/aseprite/SKILL.md) | This is a skill port of [diivi/aseprite-mcp](https://github.com/diivi/aseprite-mcp). Perform Aseprite commands to create pixel art. Requires Aseprite. |
@@ -14,87 +16,27 @@ A collection of the .NET tooling I use across my projects. The skills are meant 
 
 ## Analyzers
 
-The [analyzer solution](analyzers/Dward.Analyzers.sln) contains the analyzers, code
-fixes, regression tests, and packaged Godot validation tools.
+Custom Rosyln analyzers (and code fixes where relevant) with some standards I like using.
 
-| Package | Contents |
+### Non-Godot analyzers
+
+`Dward.Analyzers` - general C# conventions I like not covered by other existing analyzers.
+
+| Analyzer ID | Description |
 | --- | --- |
-| `Dward.Analyzers` | General C# rules, code fixes, and explicitly opted-in test naming configuration. |
-| `Dward.Godot` | Godot export, dependency-boundary, and input-action rules; export code fixes; opt-in scene/resource validation. |
+| `DWARD0003` | Use a typed empty value instead of bare `[]` for an empty collection in NSubstitute sequential returns. |
+| `DWARD0004` | Disallow explicit `sealed` modifiers on classes and record classes. AI seems to use sealed by default and I'm not a fan of it. |
+| `DWARD0005` | Allow an `Async` suffix on member names only when there's a non-async version with a matching signature. I prefer not to have the `Async` suffix on all `async` methods, so I only use it to tell apart async and sync identical methods. |
+| `DWARD0006` | Require descriptive names instead of `sut` or `_sut`. AI seems to like using this convention, and I don't. Disabled by default and must be enabled on purpose since the analyzer can't tell what is a test project and what isn't. |
 
-Both packages are version **1.0.0**. They add no application runtime dependencies.
-The packages remain local/private; ordinary builds do not publish them or apply
-code fixes.
+### Godot analyzers
 
-### Build and test
+`Dward.Godot.Analyzers` - same as above, but specific to Godot projects.
 
-Use the .NET 10 SDK. From the repository root:
+| Analyzer ID | Description |
+| --- | --- |
+| `DWARDGD0001` | Require Godot `[Export]` fields and properties to be private. If these need to be exposed, a read-only property should be created instead. |
+| `DWARDGD0002` | Reject Godot dependencies in projects explicitly marked Godot-free. I like having a Core project with as much game logic as possible that is separate from the actual Godot dependencies. This makes this logic easy to unit test. |
+| `DWARDGD0007` | Validates constant input-action names against custom project actions and built-in Godot ones. Ensures the magic string input actions the code calls are actually defined. |
+| `DWARDGD0008` | Enforces that there is exactly one `project.godot` file that is configured correctly for input action validation. |
 
-```powershell
-dotnet test .\analyzers\Dward.Analyzers.sln
-python -m unittest discover -s .\analyzers\tools\tests
-```
-
-The second command requires Python 3 and runs packaging/consumer checks as well as
-validation-runner tests. Run the .NET command first to restore the projects.
-Set `GODOT_PATH` to a Godot .NET executable to include engine-backed validation
-tests; otherwise those tests are skipped. Analyzer and code-fix tests do not launch
-Godot.
-
-### Local packages
-
-Pack explicitly to a machine-local feed:
-
-```powershell
-$feed = Join-Path $env:USERPROFILE '.nuget\local-feed\Dward'
-dotnet pack .\analyzers\Dward.Analyzers\Dward.Analyzers.csproj -c Release -o $feed
-dotnet pack .\analyzers\Dward.Godot.Analyzers\Dward.Godot.Analyzers.csproj -c Release -o $feed
-```
-
-On a new machine, register that directory once with
-`dotnet nuget add source $feed --name DwardLocal`. If package source mapping is
-enabled, map `Dward.*` to that source. Keep feed paths and credentials in user-level
-NuGet configuration, not generated projects. Do not commit package archives or
-NuGet caches.
-
-Reference either package using `PrivateAssets="all"`:
-
-```xml
-<PackageReference Include="Dward.Analyzers" Version="1.0.0" PrivateAssets="all" />
-<PackageReference Include="Dward.Godot" Version="1.0.0" PrivateAssets="all" />
-```
-
-Existing rules are warnings by default, except `DWARD0006`, which is disabled by
-default. Severity remains configurable through `.editorconfig`.
-
-To opt a whole test project into the bundled naming configuration, enable the
-package path property and explicitly include the configuration:
-
-```xml
-<PackageReference Include="Dward.Analyzers" Version="1.0.0"
-                  PrivateAssets="all" GeneratePathProperty="true" />
-<GlobalAnalyzerConfigFiles Include="$(PkgDward_Analyzers)\build\Dward.Tests.globalconfig" />
-```
-
-For Godot-free Core projects, set `<GodotFreeProject>true</GodotFreeProject>`.
-For Godot projects, add `<AdditionalFiles Include="project.godot" />` to enable
-input-action checks. Scene/resource validation stays off unless
-`<RunGodotValidation>true</RunGodotValidation>` is set in the Godot project's
-property group. Do not enable it globally for a solution containing Core projects.
-Validation requires Python 3 and Godot, configured through `GODOT_PATH`, `GODOT_BIN`,
-or the `GodotExecutable` MSBuild property.
-
-After restoring a consuming project, explicitly apply supported fixes with
-`dotnet format analyzers`, selecting diagnostic IDs and changed files. For example:
-
-```powershell
-dotnet format analyzers .\MyProject\MyProject.csproj --diagnostics DWARD0004 --include .\MyProject\Subject.cs --no-restore
-```
-
-`DWARD0003`, `DWARD0004`, and `DWARDGD0001` support automated fixes.
-The `DWARD0005` rename is review-only and does not support Fix All.
-Inspect the resulting diff and rebuild after applying a fix.
-
-The initial 1.0.0 packages were refreshed during this migration to include code
-fixes. Use new package versions for subsequent releases; rebuilding an existing
-version does not invalidate copies cached on other machines.
