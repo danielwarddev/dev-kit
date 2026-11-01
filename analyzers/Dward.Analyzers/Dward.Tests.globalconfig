@@ -1,0 +1,4 @@
+is_global = true
+
+# Reject ambiguous system-under-test names in selected projects
+dotnet_diagnostic.DWARD0006.severity = error

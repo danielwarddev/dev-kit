@@ -1,0 +1,71 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>12.0</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <IsRoslynComponent>true</IsRoslynComponent>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <RootNamespace>Dward.Godot.Analyzers</RootNamespace>
+    <PackageId>Dward.Godot</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Daniel Ward</Authors>
+    <Description>Godot-specific C# diagnostic analyzers, code fixes, and opt-in resource validation.</Description>
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);IncludeCodeFixesInPackage</TargetsForTfmSpecificContentInPackage>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.12.0" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
+    <AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
+    <ProjectReference Include="..\Dward.Godot.Analyzers.CodeFixes\Dward.Godot.Analyzers.CodeFixes.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="$(OutputPath)$(AssemblyName).dll"
+          Pack="true"
+          PackagePath="analyzers/dotnet/cs/"
+          Visible="false" />
+    <None Include="Dward.Godot.targets"
+          Pack="true"
+          PackagePath="buildTransitive/Dward.Godot.targets"
+          Visible="false" />
+    <None Include="GodotFreeProject.targets"
+          Pack="true"
+          PackagePath="buildTransitive/GodotFreeProject.targets"
+          Visible="false" />
+    <None Include="..\tools\GodotValidation.targets"
+          Pack="true"
+          PackagePath="buildTransitive/GodotValidation.targets"
+          Visible="false" />
+    <None Include="..\tools\run_godot_validation.py"
+          Pack="true"
+          PackagePath="buildTransitive/run_godot_validation.py"
+          Visible="false" />
+    <None Include="..\tools\godot_validation.gd"
+          Pack="true"
+          PackagePath="buildTransitive/godot_validation.gd"
+          Visible="false" />
+  </ItemGroup>
+
+  <Target Name="IncludeCodeFixesInPackage">
+    <MSBuild Projects="@(ProjectReference)"
+             Targets="GetTargetPath"
+             Properties="Configuration=$(Configuration);TargetFramework=$(TargetFramework)">
+      <Output TaskParameter="TargetOutputs" ItemName="_CodeFixAssembly" />
+    </MSBuild>
+    <ItemGroup>
+      <TfmSpecificPackageFile Include="@(_CodeFixAssembly)" PackagePath="analyzers/dotnet/cs/" />
+    </ItemGroup>
+  </Target>
+
+</Project>

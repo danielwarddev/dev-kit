@@ -1,0 +1,80 @@
+root = true
+
+[*]
+# Text encoding for all files
+charset = utf-8
+
+[*.cs]
+# Keep Godot exported configuration private without renaming serialized members
+dotnet_diagnostic.DWARDGD0001.severity = error
+# Keep explicitly opted-in projects free of Godot assembly dependencies
+dotnet_diagnostic.DWARDGD0002.severity = error
+# Don't drop an empty collection from sequential NSubstitute returns
+dotnet_diagnostic.DWARD0003.severity = error
+# Keep classes and record classes free of explicit sealed modifiers
+dotnet_diagnostic.DWARD0004.severity = error
+# Only allow "Async" suffix on async declarations that have a non-async counterpart
+dotnet_diagnostic.DWARD0005.severity = error
+# Validate constant Godot.Input actions against the supplied project.godot
+dotnet_diagnostic.DWARDGD0007.severity = error
+dotnet_diagnostic.DWARDGD0008.severity = error
+# Reject general exception catches that do not rethrow
+dotnet_diagnostic.CA1031.severity = error
+# Preserve the original stack trace when rethrowing a caught exception
+dotnet_diagnostic.CA2200.severity = error
+# Forward available cancellation tokens to eligible calls
+dotnet_diagnostic.CA2016.severity = error
+
+# Enforce the naming conventions defined below
+dotnet_diagnostic.IDE1006.severity = error
+
+# Collection-expression preferences; preserve concrete collection types
+dotnet_style_prefer_collection_expression = when_types_exactly_match
+# Prefer collection expressions for array initializers
+dotnet_diagnostic.IDE0300.severity = error
+# Prefer [] for empty collections.
+dotnet_diagnostic.IDE0301.severity = error
+# Prefer collection expressions for stackalloc initializers
+dotnet_diagnostic.IDE0302.severity = error
+# Prefer collection expressions over collection factory calls
+dotnet_diagnostic.IDE0303.severity = error
+# Prefer collection expressions over collection builder sequences
+dotnet_diagnostic.IDE0304.severity = error
+# Disabled: retain readable fluent pipelines ending in ToList() or ToArray()
+dotnet_diagnostic.IDE0305.severity = none
+# Prefer collection expressions over eligible collection constructors
+dotnet_diagnostic.IDE0306.severity = error
+
+# Shared naming styles: PascalCase and _camelCase
+dotnet_naming_style.pascal_case.capitalization = pascal_case
+dotnet_naming_style.private_field.capitalization = camel_case
+dotnet_naming_style.private_field.required_prefix = _
+
+# Types use PascalCase
+dotnet_naming_symbols.types.applicable_kinds = class, struct, interface, enum, delegate
+dotnet_naming_symbols.types.applicable_accessibilities = *
+dotnet_naming_rule.types.symbols = types
+dotnet_naming_rule.types.style = pascal_case
+dotnet_naming_rule.types.severity = error
+
+# Members use PascalCase unless a more specific field rule applies
+dotnet_naming_symbols.members.applicable_kinds = property, method, field, event
+dotnet_naming_symbols.members.applicable_accessibilities = *
+dotnet_naming_rule.members.symbols = members
+dotnet_naming_rule.members.style = pascal_case
+dotnet_naming_rule.members.severity = error
+
+# Private fields use _camelCase, including static and readonly fields
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+dotnet_naming_rule.private_fields.symbols = private_fields
+dotnet_naming_rule.private_fields.style = private_field
+dotnet_naming_rule.private_fields.severity = error
+
+# Private constants use PascalCase, taking precedence over the private-field rule
+dotnet_naming_symbols.private_constants.applicable_kinds = field
+dotnet_naming_symbols.private_constants.applicable_accessibilities = private
+dotnet_naming_symbols.private_constants.required_modifiers = const
+dotnet_naming_rule.private_constants.symbols = private_constants
+dotnet_naming_rule.private_constants.style = pascal_case
+dotnet_naming_rule.private_constants.severity = error

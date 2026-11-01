@@ -1,0 +1,16 @@
+<Project>
+  <!--
+    Solution-wide build settings.
+
+    MSBuild automatically imports the nearest Directory.Build.props found by
+    walking up from each project's directory, so every project in this solution
+    inherits the properties below.
+  -->
+  <PropertyGroup>
+
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>10.0</AnalysisLevel>
+  </PropertyGroup>
+</Project>

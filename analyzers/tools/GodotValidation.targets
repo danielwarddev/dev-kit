@@ -1,0 +1,30 @@
+<Project>
+  <PropertyGroup>
+    <RunGodotValidation Condition="'$(RunGodotValidation)' == ''">false</RunGodotValidation>
+    <PythonExecutable Condition="'$(PythonExecutable)' == ''">python</PythonExecutable>
+    <GodotExecutable Condition="'$(GodotExecutable)' == '' and '$(GODOT_PATH)' != ''">$(GODOT_PATH)</GodotExecutable>
+    <GodotExecutable Condition="'$(GodotExecutable)' == '' and '$(GODOT_BIN)' != ''">$(GODOT_BIN)</GodotExecutable>
+    <GodotExecutable Condition="'$(GodotExecutable)' == ''">godot-mono</GodotExecutable>
+    <_GodotValidationScript>$(MSBuildThisFileDirectory)run_godot_validation.py</_GodotValidationScript>
+  </PropertyGroup>
+
+  <!-- Run only for normal builds, not IDE design-time or outer multitarget builds -->
+  <Target Name="RunGodotValidationAfterBuild"
+          AfterTargets="Build"
+          Condition="'$(RunGodotValidation)' == 'true' and '$(DesignTimeBuild)' != 'true' and '$(IsCrossTargetingBuild)' != 'true'">
+    <Message Text="Validating Godot scenes and resources..." Importance="high" />
+    <Exec Command="&quot;$(PythonExecutable)&quot; --version"
+          IgnoreExitCode="true"
+          IgnoreStandardErrorWarningFormat="true"
+          StandardOutputImportance="low"
+          StandardErrorImportance="low"
+          Timeout="10000">
+      <Output TaskParameter="ExitCode" PropertyName="_GodotValidationPythonExitCode" />
+    </Exec>
+    <Error Condition="'$(_GodotValidationPythonExitCode)' != '0'"
+           Text="Cannot run Python executable '$(PythonExecutable)' for Godot validation. Install Python 3 and make it available on PATH, or set PythonExecutable to its full executable path in the project or with -p:PythonExecutable=&quot;path to python.exe&quot;." />
+    <Exec WorkingDirectory="$(MSBuildProjectDirectory)"
+          Command="&quot;$(PythonExecutable)&quot; &quot;$(_GodotValidationScript)&quot; --project &quot;$(MSBuildProjectDirectory)&quot; --godot &quot;$(GodotExecutable)&quot;"
+          Timeout="150000" />
+  </Target>
+</Project>

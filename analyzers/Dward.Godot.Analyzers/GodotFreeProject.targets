@@ -1,0 +1,85 @@
+<Project>
+  <ItemGroup>
+    <CompilerVisibleProperty Include="GodotFreeProject" />
+  </ItemGroup>
+
+  <UsingTask TaskName="ValidateGodotFreeDependencies"
+             TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <AssetsFile ParameterType="System.String" Required="true" />
+      <ImportedProjects ParameterType="System.String" Required="true" />
+      <GodotProjectDirectory ParameterType="System.String" />
+    </ParameterGroup>
+    <Task>
+      <Reference Include="$(MSBuildToolsPath)\Sdks\Microsoft.NET.Sdk\tools\net472\Newtonsoft.Json.dll" />
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="Newtonsoft.Json.Linq" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        var prohibited = new System.Collections.Generic.HashSet<string>(
+            new[] { "GodotSharp", "GodotSharpEditor", "Godot.SourceGenerators", "Godot.NET.Sdk" },
+            StringComparer.OrdinalIgnoreCase);
+
+        if (!File.Exists(AssetsFile))
+        {
+            Log.LogError("Godot dependency validation requires a restored assets file: '{0}' to check direct and transitive engine dependencies. Run dotnet restore for this project, then rebuild; do not bypass boundary validation.", AssetsFile);
+            return false;
+        }
+
+        var document = JObject.Parse(File.ReadAllText(AssetsFile));
+        var libraries = (JObject)document["libraries"];
+        foreach (var library in libraries.Properties())
+        {
+            if (!string.Equals((string)library.Value["type"], "package", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var separator = library.Name.LastIndexOf('/');
+            var identity = separator < 0 ? library.Name : library.Name.Substring(0, separator);
+            if (prohibited.Contains(identity))
+            {
+                Log.LogError("DWARDGD0002: Godot-free project has prohibited dependency '{0}' in its restored graph. Keep game rules portable and testable without Godot. Remove the direct or transitive reference and move Godot-dependent code, including pure helpers using Godot types, into the Godot-facing layer; that layer may reference the core, not the reverse.", library.Name);
+            }
+        }
+
+        foreach (var importedProject in ImportedProjects.Split(';'))
+        {
+            var normalized = importedProject.Replace('\\', '/');
+            if (normalized.IndexOf("/godot.net.sdk/", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                Log.LogError("DWARDGD0002: Godot-free project imports Godot.NET.Sdk, coupling core game rules to the engine. Use Microsoft.NET.Sdk for this project and move Godot-dependent code into the Godot-facing layer to keep the core portable and testable without Godot.");
+                break;
+            }
+        }
+
+        if (!string.IsNullOrEmpty(GodotProjectDirectory))
+        {
+            Log.LogError("DWARDGD0002: Godot-free project uses Godot.NET.Sdk, coupling core game rules to the engine. Use Microsoft.NET.Sdk for this project and move Godot-dependent code into the Godot-facing layer to keep the core portable and testable without Godot.");
+        }
+
+        if (Log.HasLoggedErrors)
+        {
+            return false;
+        }
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="ValidateGodotFreeDependencyBoundary"
+          BeforeTargets="CoreCompile"
+          DependsOnTargets="ResolveReferences"
+          Condition="'$(GodotFreeProject)' == 'true'">
+    <ValidateGodotFreeDependencies AssetsFile="$(ProjectAssetsFile)"
+                                   ImportedProjects="$(MSBuildAllProjects)"
+                                   GodotProjectDirectory="$(GodotProjectDir)" />
+    <ItemGroup>
+      <_ProhibitedGodotAssembly Include="@(ReferencePath)"
+                               Condition="'%(ReferencePath.Filename)' == 'GodotSharp' Or '%(ReferencePath.Filename)' == 'GodotSharpEditor'" />
+    </ItemGroup>
+    <Error Condition="'@(_ProhibitedGodotAssembly)' != ''"
+           Code="DWARDGD0002"
+           Text="Godot-free project references prohibited assemblies: @(_ProhibitedGodotAssembly). Keep game rules portable and testable without Godot. Remove the direct or transitive dependency and move Godot-dependent code, including pure helpers using Godot types, into the Godot-facing layer; that layer may reference the core, not the reverse." />
+  </Target>
+</Project>

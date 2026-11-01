@@ -1,0 +1,4 @@
+<Project>
+  <Import Project="$(MSBuildThisFileDirectory)GodotFreeProject.targets" />
+  <Import Project="$(MSBuildThisFileDirectory)GodotValidation.targets" />
+</Project>
