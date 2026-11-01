@@ -76,6 +76,8 @@ class TemplateConsumerTests(unittest.TestCase):
                     self.assertEqual(list(output.rglob("*.dll")), [])
                     self.assertEqual(list(output.rglob("*.nupkg")), [])
                     self.assertEqual(list(output.rglob("*.targets")), [])
+                    for filename in ("plan.md", "todo.md", "settings.local.json"):
+                        self.assertEqual(list(output.rglob(filename)), [])
                     skills = output / ".claude" / "skills"
                     if not skip_solution:
                         self.assertEqual(
