@@ -27,7 +27,7 @@ class AnalyzerPackageTests(unittest.TestCase):
         cls.addClassCleanup(cls.workspace.cleanup)
         cls.root = Path(cls.workspace.name)
         cls.feed = cls.root / "feed"
-        analyzers = Path(__file__).resolve().parents[2]
+        analyzers = Path(__file__).resolve().parents[1]
         for project in ("Dward.Analyzers", "Dward.Godot.Analyzers"):
             result = run_dotnet(
                 analyzers, "pack", analyzers / project / f"{project}.csproj",
