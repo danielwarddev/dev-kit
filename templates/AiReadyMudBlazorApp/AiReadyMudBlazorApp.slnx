@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="AiReadyMudBlazorApp/AiReadyMudBlazorApp.csproj" />
+  <Project Path="AiReadyMudBlazorApp.UnitTests/AiReadyMudBlazorApp.UnitTests.csproj" DisplayName="AiReadyMudBlazorApp.UnitTests" />
+</Solution>

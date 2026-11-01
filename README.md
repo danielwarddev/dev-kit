@@ -40,3 +40,14 @@ Custom Rosyln analyzers (and code fixes where relevant) with some standards I li
 | `DWARDGD0007` | Validates constant input-action names against custom project actions and built-in Godot ones. Ensures the magic string input actions the code calls are actually defined. |
 | `DWARDGD0008` | Enforces that there is exactly one `project.godot` file that is configured correctly for input action validation. |
 
+## Templates
+
+.NET projects with the project structure and Nuget packages I typically use.
+
+| Template | Short name | Description |
+| --- | --- | --- |
+| [Console](templates/AiReadyConsoleApp) | `ai-ready-console` | A console app set up with service hosting, a runner, Serilog, and an xUnit test project. |
+| [Library](templates/AiReadyLibrary) | `ai-ready-library` | A class library with an xUnit test project. |
+| [MudBlazor](templates/AiReadyMudBlazorApp) | `ai-ready-mudblazor` | A Blazor app with MudBlazor set up and an xUnit test project with bUnit. |
+
+Note: The MudBlazor test project currently specifies AngleSharp 1.5.0 to avoid the vulnerable 1.4.0 dependency selected by bUnit 2.7.2 (GHSA-pgww-w46g-26qg).

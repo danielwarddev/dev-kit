@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="AiReadyConsoleApp/AiReadyConsoleApp.csproj" />
+  <Project Path="AiReadyConsoleApp.UnitTests/AiReadyConsoleApp.UnitTests.csproj" />
+</Solution>

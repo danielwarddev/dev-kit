@@ -1,0 +1,90 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Daniel Ward",
+  "classifications": [ "C#", "Console", "Test", "AI" ],
+  "identity": "danielwarddev.AiReadyConsoleApp",
+  "name": "AI-Ready .NET Console App",
+  "shortName": "ai-ready-console",
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "sourceName": "AiReadyConsoleApp",
+  "preferNameDirectory": true,
+  "defaultName": "ConsoleApp1",
+  "symbols": {
+    "Framework": {
+      "type": "parameter",
+      "datatype": "choice",
+      "choices": [
+        { "choice": "net10.0", "description": "Target .NET 10.0" },
+        { "choice": "net9.0",  "description": "Target .NET 9.0"  },
+        { "choice": "net8.0",  "description": "Target .NET 8.0"  }
+      ],
+      "defaultValue": "net10.0",
+      "replaces": "net10.0",
+      "description": "The target framework for the project."
+    },
+    "SkipRestore": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "If set, skips the automatic dotnet restore on project creation."
+    },
+    "SkipSolution": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "description": "If set, omits solution-level scaffolding (the .slnx solution, Directory.Build.props, and AI instruction files) so the projects can be added to an existing solution."
+    }
+  },
+  "sources": [
+    {
+      "modifiers": [
+        {
+          "exclude": [
+            "**/bin/**",
+            "**/obj/**",
+            "**/.vs/**",
+            "**/.idea/**",
+            "**/*.user"
+          ]
+        },
+        {
+          "condition": "(SkipSolution)",
+          "exclude": [
+            "*.slnx",
+            "Directory.Build.props",
+            "AGENTS.md",
+            "CLAUDE.md",
+            ".claude/**"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "../../skills/csharp-standards",
+      "target": ".claude/skills/csharp-standards",
+      "condition": "(!SkipSolution)"
+    },
+    {
+      "source": "../../skills/feature-specs",
+      "target": ".claude/skills/feature-specs",
+      "condition": "(!SkipSolution)"
+    }
+  ],
+  "primaryOutputs": [
+    { "path": "AiReadyConsoleApp/AiReadyConsoleApp.csproj" },
+    { "path": "AiReadyConsoleApp.UnitTests/AiReadyConsoleApp.UnitTests.csproj" }
+  ],
+  "postActions": [
+    {
+      "id": "restore",
+      "condition": "(!SkipRestore)",
+      "description": "Restore NuGet packages required by this project.",
+      "manualInstructions": [ { "text": "Run 'dotnet restore'" } ],
+      "actionId": "210D431B-A78B-4D2F-B762-4ED3E3EA9025",
+      "continueOnError": true
+    }
+  ]
+}
