@@ -1,0 +1,33 @@
+# Publishing
+
+For now, these packages are local only and aren't hosted anywhere.
+
+To create a new version of the packages and publish, run:
+
+```bash
+# Package
+dotnet pack .\analyzers\Dward.Analyzers\Dward.Analyzers.csproj -c Release -o .\artifacts\packages
+dotnet pack .\analyzers\Dward.Godot.Analyzers\Dward.Godot.Analyzers.csproj -c Release -o .\artifacts\packages
+
+# Publish
+dotnet nuget push .\artifacts\packages\Dward.Analyzers.1.0.0.nupkg --source DwardLocal
+dotnet nuget push .\artifacts\packages\Dward.Godot.1.0.0.nupkg --source DwardLocal
+```
+
+# Testing
+
+In addition to the actual .NET tests, there is also a Python script that creates temporary .NET projects to verify the analyzers and code fixes all load and works as expected.
+
+```bash
+# .NET tests
+dotnet test .\analyzers\Dward.Analyzers.sln
+
+# Tests for the python and gdscript validation scripts
+$env:GODOT_PATH = 'C:\Users\dward\scoop\shims\godot-mono.exe'
+python -m unittest discover -s .\analyzers\Dward.Godot.Analyzers\tools\tests -v
+
+# Run the Python verifier script
+python -m unittest discover -s .\analyzers\tests -v
+
+
+```

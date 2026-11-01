@@ -18,7 +18,7 @@ Common skills I use across my .NET projects. Some are Godot-specific, so I use a
 
 Custom Rosyln analyzers (and code fixes where relevant) with some standards I like using.
 
-### Non-Godot analyzers
+### General C# analyzers
 
 `Dward.Analyzers` - general C# conventions I like not covered by other existing analyzers.
 
@@ -31,7 +31,7 @@ Custom Rosyln analyzers (and code fixes where relevant) with some standards I li
 
 ### Godot analyzers
 
-`Dward.Godot.Analyzers` - same as above, but specific to Godot projects.
+`Dward.Godot.Analyzers` - same as above, but specific to Godot projects. It also includes a python script, which runs a gdscript, which checks if scene references are set up correctly. This runs on build.
 
 | Analyzer ID | Description |
 | --- | --- |
