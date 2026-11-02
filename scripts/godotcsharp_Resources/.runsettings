@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <RunConfiguration>
+    <MaxCpuCount>1</MaxCpuCount>
+    <TestAdaptersPaths>.</TestAdaptersPaths>
+    <ResultsDirectory>./TestResults</ResultsDirectory>
+    <TestSessionTimeout>180000</TestSessionTimeout>
+    <TreatNoTestsAsError>true</TreatNoTestsAsError>
+    <!-- gdUnit4 reads the GODOT_BIN environment variable, which should point to the Godot CLI.
+         However, .runsettings does not expand environment variables, so it can't reference one here.
+         GODOT_BIN is also intentionally NOT hardcoded here, so that this file stays machine-independent.
+         Set GODOT_BIN yourself, or point it at a Godot CLI found on your PATH before running the tests. -->
+  </RunConfiguration>
+
+  <GdUnit4>
+    <Parameters>--headless</Parameters>
+    <DisplayName>FullyQualifiedName</DisplayName>
+    <CaptureStdOut>true</CaptureStdOut>
+    <CompileProcessTimeout>30000</CompileProcessTimeout>
+  </GdUnit4>
+
+  <LoggerRunSettings>
+    <Loggers>
+      <Logger friendlyName="console" enabled="True">
+        <Configuration>
+          <Verbosity>normal</Verbosity>
+        </Configuration>
+      </Logger>
+    </Loggers>
+  </LoggerRunSettings>
+</RunSettings>

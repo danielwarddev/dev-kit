@@ -1,0 +1,85 @@
+#!/bin/bash
+set -euo pipefail
+trap 'echo "Error: command failed at line $LINENO: $BASH_COMMAND" >&2' ERR
+
+workingPath=${PWD}
+workingFolderName=$(basename "$PWD")
+resourcesPath="${BASH_SOURCE[0]%/*}/ghinit_Resources"
+
+isBlog=false;
+isPrivate=false;
+isLocal=false;
+
+# Parse command line arguments
+while test $# -gt 0; do
+	case "$1" in
+		--blog)
+			shift
+			isBlog=true;
+			;;
+		--private)
+			shift
+			isPrivate=true;
+			;;
+		--localOnly)
+			shift
+			isLocal=true;
+			;;
+		*)
+			echo "$1 is not a recognized flag. Acceptable flags are: --blog, --private, --localOnly"
+			exit 1
+			;;
+	esac
+done
+
+# Get blog info if needed
+if [ $isBlog = true ]
+then
+	echo 'Blog post title:'
+	read blogPostTitle
+	echo 'Blog post link:'
+	read blogPostLink
+fi
+
+# Initialize git repo if needed			
+if ! test -e ".git"
+then
+	git init -b main
+fi
+
+# Copy saved .gitignore if it doesn't exist
+if ! test -f ".gitignore"
+then
+	cp "$resourcesPath/.gitignore" "$workingPath"
+fi
+
+# Create README.md for blog posts
+if [ $isBlog = true ] && [ ! -f "README.md" ]
+then
+	cp "$resourcesPath/README.md" "$workingPath"
+	sed -i -e "s,%ProjectName%,$workingFolderName,g"\
+		   -e "s,%PostTitle%,$blogPostTitle,g"\
+		   -e "s,%PostLink%,$blogPostLink,g"\
+	   README.md
+fi
+
+# Create repo out on GitHub (only if not local)
+if [ $isLocal = false ]
+then
+    if [ $isPrivate = true ]
+    then
+        gh repo create "$workingFolderName" --private --source=.
+    else
+        gh repo create "$workingFolderName" --public --source=.
+    fi
+fi
+
+# Initial commit and push
+git add -A
+if ! git diff --cached --quiet; then
+	git commit -m "initial commit"
+fi
+if [ $isLocal = false ]
+then
+    git push -u origin main
+fi

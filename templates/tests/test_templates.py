@@ -12,6 +12,7 @@ def run_dotnet(directory, *arguments):
     environment = os.environ.copy()
     environment["MSBUILDDISABLENODEREUSE"] = "1"
     environment["DOTNET_CLI_USE_MSBUILD_SERVER"] = "0"
+    environment["UseSharedCompilation"] = "false"
     return subprocess.run(
         ["dotnet", *map(str, arguments)], cwd=directory, env=environment,
         capture_output=True, text=True, timeout=180,
@@ -27,8 +28,13 @@ class TemplateConsumerTests(unittest.TestCase):
         cls.root = Path(cls.workspace.name)
         cls.hive = cls.root / "template-hive"
         cls.kit = Path(__file__).resolve().parents[2]
+        templates = cls.root / "standalone-templates"
+        shutil.copytree(
+            cls.kit / "templates", templates,
+            ignore=shutil.ignore_patterns("tests", "bin", "obj", "__pycache__"),
+        )
         result = run_dotnet(
-            cls.root, "new", "install", cls.kit,
+            cls.root, "new", "install", templates,
             "--debug:custom-hive", cls.hive,
         )
         if result.returncode:
@@ -68,9 +74,7 @@ class TemplateConsumerTests(unittest.TestCase):
                         ))
                         self.assertEqual(manifest.findall(".//Analyzer"), [])
                         self.assertEqual(manifest.findall(".//Import"), [])
-                    self.assertEqual((output / "AGENTS.md").exists(), not skip_solution)
-                    self.assertEqual((output / "Directory.Build.props").exists(), not skip_solution)
-                    self.assertEqual((output / ".claude").exists(), not skip_solution)
+                    self.assertFalse((output / ".claude").exists())
                     self.assertEqual(bool(list(output.glob("*.slnx"))), not skip_solution)
                     self.assertEqual(list(output.rglob("NuGet.Config")), [])
                     self.assertEqual(list(output.rglob("*.dll")), [])
@@ -78,29 +82,9 @@ class TemplateConsumerTests(unittest.TestCase):
                     self.assertEqual(list(output.rglob("*.targets")), [])
                     for filename in (".editorconfig", "Directory.Build.props", "AGENTS.md", "CLAUDE.md"):
                         generated = output / filename
-                        self.assertEqual(generated.exists(), not skip_solution)
-                        if not skip_solution:
-                            self.assertEqual(
-                                generated.read_bytes(),
-                                (self.kit / "config" / filename).read_bytes(),
-                            )
+                        self.assertFalse(generated.exists())
                     for filename in ("plan.md", "todo.md", "settings.local.json"):
                         self.assertEqual(list(output.rglob(filename)), [])
-                    skills = output / ".claude" / "skills"
-                    if not skip_solution:
-                        self.assertEqual(
-                            sorted(path.name for path in skills.iterdir()),
-                            ["csharp-standards", "feature-specs"],
-                        )
-                        for skill in ("csharp-standards", "feature-specs"):
-                            canonical = self.kit / "skills" / skill
-                            for source in canonical.rglob("*"):
-                                if source.is_file():
-                                    generated = skills / skill / source.relative_to(canonical)
-                                    self.assertEqual(
-                                        generated.read_bytes(), source.read_bytes(),
-                                        str(generated),
-                                    )
 
                     for project in projects:
                         self.assert_succeeded(run_dotnet(output, "restore", project, "-v", "quiet"))
@@ -119,32 +103,6 @@ class TemplateConsumerTests(unittest.TestCase):
                     project = next(
                         item for item in projects if ".UnitTests" not in item.stem
                     )
-                    if not skip_solution:
-                        production_probe = project.parent / "NamingProbe.cs"
-                        production_probe.write_text(
-                            "public class NamingProbe { public int Read(int sut) => sut; }\n",
-                            encoding="utf-8",
-                        )
-                        test_project = next(
-                            item for item in projects if ".UnitTests" in item.stem
-                        )
-                        test_probe = test_project.parent / "NamingProbe.cs"
-                        test_probe.write_text(
-                            "public class NamingProbe { public int Read(int sut) => sut; }\n",
-                            encoding="utf-8",
-                        )
-                        result = run_dotnet(
-                            output, "build", project, "--no-restore", "-v", "quiet",
-                        )
-                        self.assert_succeeded(result)
-                        self.assertNotIn("DWARD0006", result.stdout + result.stderr)
-                        result = run_dotnet(
-                            output, "build", test_project, "--no-restore", "-v", "quiet",
-                        )
-                        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
-                        self.assertIn("DWARD0006", result.stdout + result.stderr)
-                        production_probe.unlink()
-                        test_probe.unlink()
                     probe = project.parent / "AnalyzerProbe.cs"
                     probe.write_text(
                         "public sealed class AnalyzerProbe { }\n", encoding="utf-8",

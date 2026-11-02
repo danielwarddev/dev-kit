@@ -54,7 +54,7 @@ Note: The MudBlazor test project currently specifies AngleSharp 1.5.0 to avoid t
 
 ## Shared configuration
 
-There are some files that projects or solutions share and should always be copied over, in addition to the agent skills.
+There are some files that projects or solutions share and should always be copied over, in addition to the agent skills. The `apply-project-files` script below brings these over into a project (in addition to the agent skills).
 
 | File | Description |
 | --- | --- |
@@ -62,3 +62,36 @@ There are some files that projects or solutions share and should always be copie
 | `Directory.Build.props` | Always treat warnings as errors. |
 | `AGENTS.md` | AI instructions; self-explanatory. |
 | `CLAUDE.md` | Just points to `@AGENTS.md`, if using Claude Code. |
+
+## Scripts
+
+Bash scripts for general helpfulness, and also to be used in conjunction with the .NET templates to bring in everything I want for the projects. Running a script will  create a new project using one of the .NET templates, update all the Nuget packages to the latest stable version, and bring over the `.editorconfig` file, `Directory.Build.props` file, and agent instructions (skills and `AGENTS.md`).
+
+| Script | Description |
+| --- | --- |
+| `ghinit [--localOnly] [--private] [--blog]` | Initializes a new git repo, adds a .gitignore, pushes to a new GitHub repo, and sets a relevant README if it's for one of my blog posts. Also used by `godotcsharp` (see below section). |
+| `new-ai-ready-app -t <template> -n <name>` | The shared implementation behind the below row. Creates a new project from a .NET template then runs the `update-packages` and `apply-project-files` scripts. |
+| `new-ai-ready-<apptype>-app` | Small scripts which just set which .NET template to use and then call `new-ai-ready-app`. |
+| `apply-project-files <directory> [--godot]` | Copies `.editorconfig`, `Directory.Build.props`, `AGENTS.md`, `CLAUDE.md`, and the relevant agent skills into the project. |
+| `update-packages [directory]` | Runs `dotnet package update --project` on `.csproj` files in the directory, which updates package sto their latest stable version, regardless of their version in the .NET template. |
+
+
+```bash
+# Example
+bash scripts/new-ai-ready-console-app -n MyApp -o "$HOME/projects"
+```
+
+### Godot
+
+The `godotcsharp` script is slightly different than the other, as it does not use a .NET template. Instead, it creates the typical C# project that Godot will create for you, but updates it to be more to my liking. It:
+
+- Adds it to a .NET solution
+- Moves `project.godot` into the Godot project's folder
+- Adds gdUnit4 to the Godot project
+- Creates a `Core` project (intended to contain game logic without Godot dependencies for easy testing)
+- Creates an xUnit test project for the `Core` project
+
+```bash
+# Example - bootstrap creates a new dir for you and puts the game in it
+godotcsharp --bootstrap MyCoolNewGame
+```

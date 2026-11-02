@@ -35,15 +35,10 @@
       "type": "parameter",
       "datatype": "bool",
       "defaultValue": "false",
-      "description": "If set, omits solution-level scaffolding (the .slnx solution, Directory.Build.props, and AI instruction files) so the projects can be added to an existing solution."
+      "description": "If set, omits the .slnx solution so the projects can be added to an existing solution."
     }
   },
   "sources": [
-    {
-      "source": "../../config",
-      "include": [ ".editorconfig", "Directory.Build.props", "AGENTS.md", "CLAUDE.md" ],
-      "condition": "(!SkipSolution)"
-    },
     {
       "modifiers": [
         {
@@ -58,24 +53,10 @@
         {
           "condition": "(SkipSolution)",
           "exclude": [
-            "*.slnx",
-            "Directory.Build.props",
-            "AGENTS.md",
-            "CLAUDE.md",
-            ".claude/**"
+            "*.slnx"
           ]
         }
       ]
-    },
-    {
-      "source": "../../skills/csharp-standards",
-      "target": ".claude/skills/csharp-standards",
-      "condition": "(!SkipSolution)"
-    },
-    {
-      "source": "../../skills/feature-specs",
-      "target": ".claude/skills/feature-specs",
-      "condition": "(!SkipSolution)"
     }
   ],
   "primaryOutputs": [

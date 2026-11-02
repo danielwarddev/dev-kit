@@ -1,0 +1,108 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+command_name="${AI_READY_COMMAND_NAME:-"$(basename "$0")"}"
+default_template="${AI_READY_TEMPLATE:-}"
+
+usage() {
+    if [[ -n "$default_template" ]]; then
+        echo "Usage: $command_name -n <Name> [-o <OutputDirectory>] [--skip-solution] [--skip-package-update] [--template <TemplateShortName>]" >&2
+    else
+        echo "Usage: $command_name -t <TemplateShortName> -n <Name> [-o <OutputDirectory>] [--skip-solution] [--skip-package-update]" >&2
+    fi
+
+    exit 1
+}
+
+require_value() {
+    if [[ $# -lt 2 || -z "${2:-}" ]]; then
+        echo "Error: $1 requires a value." >&2
+        usage
+    fi
+}
+
+template="$default_template"
+name=""
+output_directory="$(pwd)"
+skip_solution=false
+skip_package_update=false
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -t|--template)
+            require_value "$@"
+            template="$2"
+            shift 2
+            ;;
+        -n|--name)
+            require_value "$@"
+            name="$2"
+            shift 2
+            ;;
+        -o|--output)
+            require_value "$@"
+            output_directory="$2"
+            shift 2
+            ;;
+        --skip-solution)
+            skip_solution=true
+            shift
+            ;;
+        --skip-package-update)
+            skip_package_update=true
+            shift
+            ;;
+        -h|--help)
+            usage
+            ;;
+        *)
+            echo "Unknown argument: $1" >&2
+            usage
+            ;;
+    esac
+done
+
+if [[ -z "$template" ]]; then
+    echo "Error: -t <TemplateShortName> is required." >&2
+    usage
+fi
+
+if [[ -z "$name" ]]; then
+    echo "Error: -n <Name> is required." >&2
+    usage
+fi
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+project_path="$output_directory/$name"
+[[ "$name" != "." && "$name" != ".." && "$name" != *[/\\]* ]] \
+    || { echo "Name must be a single project name, not a path." >&2; exit 1; }
+[[ ! -e "$project_path" ]] \
+    || { echo "Refusing to overwrite existing path: $project_path" >&2; exit 1; }
+command -v dotnet >/dev/null || { echo "The dotnet CLI is required." >&2; exit 1; }
+
+echo "Creating new project '$name' from template '$template'..."
+echo "  Output: $project_path"
+
+dotnet_new_args=("$template" -n "$name" -o "$project_path" --SkipRestore)
+if [[ "$skip_solution" == true ]]; then
+    dotnet_new_args+=(--SkipSolution)
+fi
+
+dotnet new "${dotnet_new_args[@]}"
+
+if [[ "$skip_solution" != true ]]; then
+    bash "$script_dir/apply-project-files" "$project_path"
+fi
+
+if [[ "$skip_package_update" != true ]]; then
+    echo ""
+    echo "Updating NuGet packages in generated project..."
+    bash "$script_dir/update-packages" "$project_path"
+else
+    while IFS= read -r -d '' project; do
+        dotnet restore "$project"
+    done < <(find "$project_path" -type f -name '*.csproj' -not -path '*/obj/*' -not -path '*/bin/*' -print0)
+fi
+
+echo ""
+echo "Project '$name' is ready at $project_path"

@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+AI_READY_COMMAND_NAME="$(basename "$0")" AI_READY_TEMPLATE="ai-ready-mudblazor" \
+    exec bash "$script_dir/new-ai-ready-app" "$@"

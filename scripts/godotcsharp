@@ -1,0 +1,542 @@
+#!/usr/bin/env bash
+#
+# godotcsharp
+# -------------------------------------------------------------------------
+# Restructure a freshly-created Godot C# project into a "standard" .NET
+# solution layout:
+#
+#   <repo root>/
+#   |-- <Name>.sln                      <- solution stays at the repo root
+#   |-- Directory.Build.props           <- solution-wide build props (warnings as errors)
+#   |-- .runsettings                    <- gdUnit4 / VSTest settings for the Godot suite
+#   |-- .gitattributes / .editorconfig  <- repo-level files stay at the root
+#   |-- .gitignore                      <- written by the ghinit helper
+#   |-- <Name>/                         <- the Godot project lives in here
+#   |     |-- <Name>.csproj             <- references <Name>.Core + gdUnit4 packages
+#   |     |-- project.godot             <- gets solution_directory="../"
+#   |     |-- icon.svg (+ .import)
+#   |     |-- .godot/
+#   |     |-- Tests/                    <- gdUnit4 tests (engine-backed)
+#   |     '-- (all your scenes/scripts/assets)
+#   |-- <Name>.Core/                    <- engine-free game logic
+#   |     '-- <Name>.Core.csproj
+#   '-- <Name>.Core.Tests/              <- xUnit tests for the Core project
+#         '-- <Name>.Core.Tests.csproj
+#
+# TESTING LAYOUT:
+#   gdUnit4 (gdUnit4.api, the C#/"gdUnit4Net" library) runs its tests *inside*
+#   the Godot runtime, so those tests cannot live in a separate test project.
+#   They go in <Name>/Tests/ and the gdUnit4 packages are installed into the
+#   Godot csproj itself. Everything that does not need the engine belongs in
+#   <Name>.Core, which is covered by the plain xUnit <Name>.Core.Tests project.
+#
+# Godot's default layout dumps project.godot, the .csproj and the .sln all
+# flat in the root. This script moves the dotnet/Godot files into a project
+# subfolder, fixes every path that referenced them, and adds the Core +
+# Core.Tests projects. It also drops in static files from the
+# godotcsharp_Resources/ folder (icon.svg, .gitattributes, .runsettings),
+# applies the kit's shared config and skills, and runs the 'ghinit' helper to init git
+# and write the comprehensive .gitignore.
+#
+# REQUIREMENTS:
+#   - A godotcsharp_Resources/ folder must sit next to this script.
+#   - 'dotnet' on PATH. 'godot-mono' on PATH is needed only for --bootstrap.
+#   - The sibling 'ghinit' script for git init + .gitignore (skipped if absent).
+#
+# USAGE:
+#   Restructure an existing Godot C# project (project.godot already present):
+#     godotcsharp
+#
+#   Bootstrap a brand-new project from scratch. This creates a <Name>/ folder
+#   in the current directory, generates project.godot inside it, imports it
+#   with the Godot CLI, then restructures it:
+#     godotcsharp --bootstrap MyGame
+#
+# OPTIONS:
+#   --bootstrap <Name>  Create a new <Name>/ folder here, scaffold a Godot
+#                       project named <Name> inside it, and restructure it.
+#                       The required name guards against running in the wrong
+#                       directory by accident. When restructuring an existing
+#                       project the name is auto-detected, so this is not needed.
+#
+# The headless import uses 'godot-mono' (the mono/C# build). It is best-effort:
+# if godot-mono isn't found it's skipped (Godot imports on first open instead).
+#
+# The script is safe to re-run: steps that are already done are skipped.
+# -------------------------------------------------------------------------
+
+set -euo pipefail
+# Surface the exact failing line if any command errors out under 'set -e'.
+trap 'die "command failed at line $LINENO: $BASH_COMMAND"' ERR
+
+ROOT="$(pwd)"
+GODOT_CMD="${GODOT_PATH:-${GODOT_BIN:-godot-mono}}"
+
+# Directory holding this script, so we can find the godotcsharp_Resources/
+# folder that must sit alongside it regardless of where it's invoked from.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+RESOURCES_DIR="$SCRIPT_DIR/godotcsharp_Resources"
+
+log()  { printf '  %s\n' "$*"; }
+step() { printf '\n==> %s\n' "$*"; }
+die()  { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
+
+# Copy a missing file from godotcsharp_Resources/ to a destination dir.
+# Dies if the resource is missing so problems surface loudly.
+copy_resource() {
+  local rel="$1" dest_dir="$2"
+  [ -f "$RESOURCES_DIR/$rel" ] || die "Missing resource '$rel' in $RESOURCES_DIR (the godotcsharp_Resources/ folder must sit next to this script)."
+  if [ ! -e "$dest_dir/$rel" ]; then
+    cp "$RESOURCES_DIR/$rel" "$dest_dir/$rel"
+  fi
+}
+
+# Insert an XML block just before </Project>. 'marker' is a distinctive string
+# from the block; when it is already in the file the insert is skipped, which
+# keeps the script safe to re-run and lets it top up a csproj Godot generated.
+append_to_csproj() {
+  local csproj="$1" marker="$2" block="$3"
+  if grep -qF "$marker" "$csproj"; then
+    return 0
+  fi
+  local out="" line inserted=0
+  while IFS= read -r line || [ -n "$line" ]; do
+    if [ "$inserted" -eq 0 ] && [ "${line#*</Project>}" != "$line" ]; then
+      out+="$block"$'\n'
+      inserted=1
+    fi
+    out+="$line"$'\n'
+  done < "$csproj"
+  printf '%s' "$out" > "$csproj"
+}
+
+# -------------------------------------------------------------------------
+# Parse arguments.
+# -------------------------------------------------------------------------
+BOOTSTRAP=0
+NAME=""
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --bootstrap)
+      BOOTSTRAP=1
+      shift
+      NAME="${1:-}"
+      [ -n "$NAME" ] && [ "${NAME#-}" = "$NAME" ] \
+        || die "--bootstrap requires a project name, e.g. 'godotcsharp --bootstrap MyGame'." ;;
+    -h|--help)
+      awk 'NR == 1 { next } /^#/ { sub(/^# ?/, ""); print; next } { exit }' "$0"
+      exit 0 ;;
+    *) die "Unknown option: $1" ;;
+  esac
+  shift
+done
+
+command -v dotnet >/dev/null 2>&1 || die "The 'dotnet' CLI is required but was not found on PATH."
+
+# -------------------------------------------------------------------------
+# 1. Figure out the project name.
+#    Priority: existing root *.csproj  ->  *.sln  ->  project.godot.
+# -------------------------------------------------------------------------
+detect_name() {
+  local f
+  f="$(find "$ROOT" -maxdepth 1 -name '*.csproj' | head -n1 || true)"
+  if [ -n "$f" ]; then basename "$f" .csproj; return; fi
+  f="$(find "$ROOT" -maxdepth 1 -name '*.sln' | head -n1 || true)"
+  if [ -n "$f" ]; then basename "$f" .sln; return; fi
+  if [ -f "$ROOT/project.godot" ]; then
+    # assembly_name is the canonical dotnet name; fall back to config/name.
+    local n
+    n="$(grep -E '^project/assembly_name=' "$ROOT/project.godot" | head -n1 | sed -E 's/.*="(.*)".*/\1/')"
+    [ -z "$n" ] && n="$(grep -E '^config/name=' "$ROOT/project.godot" | head -n1 | sed -E 's/.*="(.*)".*/\1/')"
+    [ -n "$n" ] && { echo "$n"; return; }
+  fi
+  die "Could not determine the project name. Run this from a Godot project root."
+}
+
+# -------------------------------------------------------------------------
+# 0. Bootstrap a project.godot when --bootstrap is given (starting from an
+#    empty folder / scratch).
+# -------------------------------------------------------------------------
+bootstrap_project() {
+  local name="$1"
+  step "Bootstrapping new Godot project '$name'"
+
+  cat > "$ROOT/project.godot" <<EOF
+; Engine configuration file.
+config_version=5
+
+[application]
+
+config/name="$name"
+config/icon="res://icon.svg"
+
+[dotnet]
+
+project/assembly_name="$name"
+EOF
+  log "created project.godot"
+
+  # The real Godot default icon (and its import sidecar) so config/icon resolves
+  # and the headless import below has something to import.
+  copy_resource "icon.svg" "$ROOT"
+  copy_resource "icon.svg.import" "$ROOT"
+  log "added icon.svg"
+
+  # Best-effort headless import to generate the .godot/ cache. If the Godot CLI
+  # isn't available, the project still opens fine in Godot (it imports then).
+  if command -v "$GODOT_CMD" >/dev/null 2>&1; then
+    log "importing with '$GODOT_CMD' (headless)"
+    "$GODOT_CMD" --headless --import --path "$ROOT" --quit-after 1 >/dev/null 2>&1 \
+      || log "import returned non-zero; Godot will re-import on first open"
+  else
+    log "Godot CLI '$GODOT_CMD' not found; skipping import (Godot imports on first open)"
+  fi
+}
+
+# When bootstrapping, create the named folder at the call site and work inside
+# it, so you don't have to mkdir + cd first.
+if [ "$BOOTSTRAP" -eq 1 ]; then
+  [[ "$NAME" != "." && "$NAME" != ".." && "$NAME" != *[/\\]* ]] \
+    || die "Name must be a single project name, not a path."
+  PROJECT_ROOT="$ROOT/$NAME"
+  [ -e "$PROJECT_ROOT" ] && die "Cannot bootstrap: '$NAME' already exists in $ROOT."
+  mkdir "$PROJECT_ROOT"
+  cd "$PROJECT_ROOT"
+  ROOT="$PROJECT_ROOT"
+  bootstrap_project "$NAME"
+fi
+
+# Resolve the project name if it wasn't supplied / set by bootstrap.
+[ -n "$NAME" ] || NAME="$(detect_name)"
+GODOT_DIR="$ROOT/$NAME"
+GODOT_TESTS_DIR="$GODOT_DIR/Tests"
+CORE_DIR="$ROOT/${NAME}.Core"
+CORE_TESTS_DIR="$ROOT/${NAME}.Core.Tests"
+SLN="$ROOT/$NAME.sln"
+
+step "Project name: $NAME"
+
+# -------------------------------------------------------------------------
+# 2. Move the Godot/dotnet files into the <Name>/ subfolder.
+#    Only an explicit allow-list is moved; repo-level files, the .sln, this
+#    script and the test project stay at the root.
+# -------------------------------------------------------------------------
+step "Moving Godot project files into '$NAME/'"
+mkdir -p "$GODOT_DIR"
+
+move_in() {
+  local item="$1"
+  if [ -e "$ROOT/$item" ] && [ ! -e "$GODOT_DIR/$item" ]; then
+    mv "$ROOT/$item" "$GODOT_DIR/"
+    log "moved $item"
+  fi
+}
+
+move_in "project.godot"
+move_in "$NAME.csproj"
+move_in "icon.svg"
+move_in "icon.svg.import"
+move_in ".godot"
+
+# Create the main csproj if it didn't exist (e.g. C# not yet enabled). When it
+# does exist (Godot wrote it), step 6 tops it up with the same gdUnit4 wiring.
+CSPROJ="$GODOT_DIR/$NAME.csproj"
+if [ ! -f "$CSPROJ" ]; then
+  cat > "$CSPROJ" <<EOF
+<Project Sdk="Godot.NET.Sdk/4.7.0">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework Condition=" '\$(GodotTargetPlatform)' == 'android' ">net9.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+  </PropertyGroup>
+</Project>
+EOF
+  log "created $NAME.csproj"
+fi
+
+[ -f "$GODOT_DIR/project.godot" ] || die "project.godot not found; is this a Godot project?"
+
+append_to_csproj "$CSPROJ" 'Include="Dward.Analyzers"' '  <ItemGroup>
+    <PackageReference Include="Dward.Analyzers" Version="1.0.0">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+'
+
+append_to_csproj "$CSPROJ" 'Include="Dward.Godot"' '  <ItemGroup>
+    <PackageReference Include="Dward.Godot" Version="1.0.0">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+'
+
+append_to_csproj "$CSPROJ" '<AdditionalFiles Include="project.godot" />' '  <ItemGroup>
+    <AdditionalFiles Include="project.godot" />
+  </ItemGroup>
+'
+
+# -------------------------------------------------------------------------
+# 2b. Apply missing static resources and shared project defaults in both flows.
+#     - Godot assets (icon.svg + sidecar) live with the project, so they go in
+#       the <Name>/ subfolder.
+#     - Repo-level files and shared defaults go next to the .sln.
+#       (.gitignore via ghinit.)
+# -------------------------------------------------------------------------
+step "Applying resource files"
+for asset in icon.svg icon.svg.import; do
+  copy_resource "$asset" "$GODOT_DIR"
+  log "ensured $NAME/$asset"
+done
+for repo_file in .gitattributes .runsettings; do
+  copy_resource "$repo_file" "$ROOT"
+  log "ensured $repo_file"
+done
+bash "$SCRIPT_DIR/apply-project-files" "$ROOT" --godot
+
+# -------------------------------------------------------------------------
+# 3. Point project.godot at the solution one level up.
+#    Godot needs [dotnet] project/solution_directory="../" once the .sln no
+#    longer sits next to project.godot.
+# -------------------------------------------------------------------------
+step "Setting solution_directory in project.godot"
+PG="$GODOT_DIR/project.godot"
+if grep -qE '^project/solution_directory=' "$PG"; then
+  log "already set"
+elif grep -qE '^\[dotnet\]' "$PG"; then
+  # Insert right after the [dotnet] section header.
+  awk '
+    { print }
+    /^\[dotnet\]$/ && !done { print "project/solution_directory=\"../\""; done=1 }
+  ' "$PG" > "$PG.tmp" && mv "$PG.tmp" "$PG"
+  log "added under existing [dotnet]"
+else
+  printf '\n[dotnet]\n\nproject/solution_directory="../"\n' >> "$PG"
+  log "added new [dotnet] section"
+fi
+
+# -------------------------------------------------------------------------
+# 4. Create the engine-free <Name>.Core project (if missing).
+#    Game logic lives here so it can be unit tested without the Godot runtime.
+# -------------------------------------------------------------------------
+step "Creating core project '${NAME}.Core/'"
+mkdir -p "$CORE_DIR"
+
+CORE_CSPROJ="$CORE_DIR/${NAME}.Core.csproj"
+if [ ! -f "$CORE_CSPROJ" ]; then
+  cat > "$CORE_CSPROJ" <<EOF
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
+EOF
+  log "created ${NAME}.Core.csproj"
+else
+  log "already exists"
+fi
+
+append_to_csproj "$CORE_CSPROJ" 'Include="Dward.Analyzers"' '  <ItemGroup>
+    <PackageReference Include="Dward.Analyzers" Version="1.0.0">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+'
+
+append_to_csproj "$CORE_CSPROJ" 'Include="Dward.Godot"' '  <ItemGroup>
+    <PackageReference Include="Dward.Godot" Version="1.0.0">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+'
+
+append_to_csproj "$CORE_CSPROJ" '<GodotFreeProject>true</GodotFreeProject>' '  <PropertyGroup>
+    <GodotFreeProject>true</GodotFreeProject>
+  </PropertyGroup>
+'
+
+# -------------------------------------------------------------------------
+# 5. Create the xUnit (v3) test project for the core (if missing).
+#    Package versions are pinned to a combination that is known to build and
+#    run; use the 'update-packages' script afterwards to bump them.
+# -------------------------------------------------------------------------
+step "Creating core test project '${NAME}.Core.Tests/'"
+mkdir -p "$CORE_TESTS_DIR"
+
+CORE_TESTS_CSPROJ="$CORE_TESTS_DIR/${NAME}.Core.Tests.csproj"
+if [ ! -f "$CORE_TESTS_CSPROJ" ]; then
+  cat > "$CORE_TESTS_CSPROJ" <<EOF
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <NoWarn>\$(NoWarn);CS8785</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\\${NAME}.Core\\${NAME}.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AutoFixture" Version="4.18.1" />
+    <PackageReference Include="AwesomeAssertions" Version="9.4.0" />
+    <PackageReference Include="coverlet.collector" Version="10.0.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.7.0" />
+    <PackageReference Include="NSubstitute" Version="5.3.0" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="xunit.v3.mtp-off" Version="3.2.2" />
+  </ItemGroup>
+
+</Project>
+EOF
+  log "created ${NAME}.Core.Tests.csproj"
+else
+  log "already exists"
+fi
+
+append_to_csproj "$CORE_TESTS_CSPROJ" 'Include="Dward.Analyzers"' '  <ItemGroup>
+    <PackageReference Include="Dward.Analyzers" Version="1.0.0">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+'
+
+# -------------------------------------------------------------------------
+# 6. Wire the Godot project up for gdUnit4.
+#    gdUnit4 executes its tests inside the Godot runtime, so the test assembly
+#    has to be the Godot assembly itself: the packages go in the Godot csproj
+#    and the tests live in <Name>/Tests/ rather than a separate project.
+# -------------------------------------------------------------------------
+step "Wiring gdUnit4 into '$NAME/$NAME.csproj'"
+
+append_to_csproj "$CSPROJ" 'RunSettingsFilePath' '  <PropertyGroup>
+    <!-- gdUnit4 ships against an older GodotSharp; silence the harmless downgrade warning. -->
+    <NoWarn>$(NoWarn);NU1605</NoWarn>
+    <!-- Auto-apply the repo-root run settings so a bare `dotnet test` needs no extra flags. -->
+    <RunSettingsFilePath>$(MSBuildThisFileDirectory)..\.runsettings</RunSettingsFilePath>
+  </PropertyGroup>
+'
+
+append_to_csproj "$CSPROJ" "${NAME}.Core.csproj" "  <ItemGroup>
+    <ProjectReference Include=\"..\\${NAME}.Core\\${NAME}.Core.csproj\" />
+  </ItemGroup>
+"
+
+append_to_csproj "$CSPROJ" 'gdUnit4.api' '  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.7.0" />
+    <PackageReference Include="gdUnit4.api" Version="5.0.0" />
+    <PackageReference Include="gdUnit4.test.adapter" Version="3.0.0" />
+    <PackageReference Include="gdUnit4.analyzers" Version="1.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+'
+
+append_to_csproj "$CSPROJ" 'gdunit4_testadapter_v5' '  <ItemGroup>
+    <Content Include="gdunit4_testadapter_v5\.gdignore" />
+  </ItemGroup>
+'
+log "gdUnit4 packages, core reference and run settings applied"
+
+# The adapter generates its runner scene here; .gdignore keeps Godot from
+# importing it as game content.
+mkdir -p "$GODOT_DIR/gdunit4_testadapter_v5"
+[ -f "$GODOT_DIR/gdunit4_testadapter_v5/.gdignore" ] || : > "$GODOT_DIR/gdunit4_testadapter_v5/.gdignore"
+
+mkdir -p "$GODOT_TESTS_DIR"
+EXAMPLE_TEST="$GODOT_TESTS_DIR/ExampleTests.cs"
+if [ ! -f "$EXAMPLE_TEST" ]; then
+  cat > "$EXAMPLE_TEST" <<EOF
+using GdUnit4;
+using static GdUnit4.Assertions;
+
+namespace ${NAME}.Tests;
+
+// Add [RequireGodotRuntime] to any suite that touches Godot types or res:// resources.
+[TestSuite]
+public class ExampleTests
+{
+    [TestCase]
+    public void When_The_Suite_Runs_Then_It_Passes()
+    {
+        AssertThat(1 + 1).IsEqual(2);
+    }
+}
+EOF
+  log "created Tests/ExampleTests.cs"
+fi
+
+# -------------------------------------------------------------------------
+# 7. Fix up the solution.
+#    - If the .sln doesn't exist, create one and add the main project.
+#    - Otherwise repoint the (already-present) main csproj to the subfolder.
+#    - Add the other projects via `dotnet sln add`, which generates the project
+#      GUID and maps Godot's Export* configs to Debug automatically.
+# -------------------------------------------------------------------------
+step "Updating solution '$NAME.sln'"
+
+if [ ! -f "$SLN" ]; then
+  dotnet new sln --name "$NAME" --output "$ROOT" --format sln >/dev/null
+  dotnet sln "$SLN" add "$GODOT_DIR/$NAME.csproj" >/dev/null
+  log "created $NAME.sln and added main project"
+else
+  # Repoint the main csproj path (only if not already pointing at the subfolder).
+  if grep -qE "\"$NAME/$NAME\.csproj\"" "$SLN"; then
+    log "main csproj path already correct"
+  else
+    sed -i -E "s@\"$NAME\.csproj\"@\"$NAME/$NAME.csproj\"@" "$SLN"
+    log "repointed main csproj -> $NAME/$NAME.csproj"
+  fi
+fi
+
+# Add the core + core test projects to the sln (if not already present).
+for proj in "$CORE_CSPROJ" "$CORE_TESTS_CSPROJ"; do
+  proj_name="$(basename "$proj" .csproj)"
+  if grep -qF "\"$proj_name\"" "$SLN"; then
+    log "$proj_name already in solution"
+  else
+    dotnet sln "$SLN" add "$proj" >/dev/null
+    log "added $proj_name to solution"
+  fi
+done
+
+# -------------------------------------------------------------------------
+# 8. Initialise git + write the comprehensive .gitignore via the ghinit
+#    helper (single source of truth for the gitignore). Skipped if the repo
+#    is already initialised, so re-running the script stays safe.
+# -------------------------------------------------------------------------
+step "Initializing git repository (ghinit)"
+if [ -d "$ROOT/.git" ]; then
+  log "git already initialised; skipping ghinit"
+elif [ -f "$SCRIPT_DIR/ghinit" ]; then
+  ( cd "$ROOT" && bash "$SCRIPT_DIR/ghinit" --localOnly )
+else
+  log "sibling ghinit not found; skipping git init + .gitignore"
+fi
+
+step "Done. Layout is ready:"
+log "$NAME.sln                 (solution)"
+log "$NAME/                    (Godot project + main csproj)"
+log "$NAME/Tests/              (gdUnit4 tests, run inside the Godot runtime)"
+log "${NAME}.Core/               (engine-free game logic)"
+log "${NAME}.Core.Tests/         (xUnit tests for the core)"
+printf '\nOpen %s in Godot via %s/project.godot, and the .sln in your IDE.\n' "$NAME" "$NAME"
+printf 'The gdUnit4 suite needs a Godot binary; the Godot CLI should be in your PATH. Alternatively, set GODOT_BIN before running it.\n'

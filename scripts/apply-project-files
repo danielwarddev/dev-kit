@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# Usually ran after a project template is executed, but can technically be ran any time.
+# Puts the following files into a project:
+# - .editorconfig
+# - Directory.Build.props
+# - AGENTS.md
+# - CLAUDE.md
+# - .claude/skills
+set -euo pipefail
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+kit_dir="$(cd "$script_dir/.." && pwd)"
+target="${1:?Usage: apply-project-files <project-directory> [--godot]}"
+mode="${2:-}"
+[[ -z "$mode" || "$mode" == "--godot" ]] || { echo "Unknown option: $mode" >&2; exit 1; }
+[[ $# -le 2 && -d "$target" ]] || { echo "Expected an existing project directory." >&2; exit 1; }
+
+copy_missing() {
+    local source="$1" destination="$2"
+    if [[ -e "$destination" || -L "$destination" ]]; then
+        echo "Keeping existing $destination"
+    else
+        mkdir -p "$(dirname "$destination")"
+        if [[ -d "$source" ]]; then
+            mkdir "$destination"
+            tar -C "$source" --exclude=__pycache__ --exclude='*.pyc' --exclude='*.pyo' -cf - . \
+                | tar -C "$destination" -xf -
+        else
+            cp "$source" "$destination"
+        fi
+    fi
+}
+
+for name in .editorconfig Directory.Build.props AGENTS.md CLAUDE.md; do
+    [[ -f "$kit_dir/config/$name" ]] || { echo "Missing config/$name" >&2; exit 1; }
+done
+skills=(csharp-standards feature-specs)
+if [[ "$mode" == "--godot" ]]; then
+    skills+=(aseprite godot-engine godot-playtesting)
+fi
+for skill in "${skills[@]}"; do
+    [[ -f "$kit_dir/skills/$skill/SKILL.md" ]] || { echo "Missing skill: $skill" >&2; exit 1; }
+done
+
+for name in .editorconfig Directory.Build.props AGENTS.md CLAUDE.md; do
+    copy_missing "$kit_dir/config/$name" "$target/$name"
+done
+for skill in "${skills[@]}"; do
+    copy_missing "$kit_dir/skills/$skill" "$target/.claude/skills/$skill"
+done
