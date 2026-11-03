@@ -5,11 +5,10 @@
 #    NuGet feed (defaults to ~/.nuget/local-feed/Dward).
 # 3. Add or repair the enabled DwardLocal NuGet source and Dward.* source mapping,
 #    preserving unrelated configuration.
-# 4. Register or refresh the project's .NET templates.
-# 5. Make the Bash scripts executable and maintain a nonduplicating PATH block
-#    in .bashrc and the applicable Bash login profile.
+# 4. Deploy a snapshot to CustomScripts/dward-dev-kit and register its templates.
+# 5. Add the deployed scripts to Windows user PATH and maintain a nonduplicating
+#    PATH block in .bashrc and the applicable Bash login profile.
 # 6. Report missing optional Godot, GitHub CLI, and Aseprite tools without failing.
-#
 
 import argparse
 import os
@@ -19,6 +18,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import xml.etree.ElementTree as ET
 import zipfile
 
@@ -179,6 +179,102 @@ def default_profiles(home):
     return [home / ".bashrc", login_profile]
 
 
+def validate_deployment(destination):
+    if destination.is_symlink() or getattr(destination, "is_junction", lambda: False)():
+        raise ValueError(f"Deployment must not be a link: {destination}")
+    if destination == KIT or destination in KIT.parents or KIT in destination.parents:
+        raise ValueError("Deployment must be outside the dev-kit checkout.")
+    if destination.exists() and not (destination / ".dev-kit-deployment").is_file():
+        raise ValueError(f"Refusing to replace an unmanaged directory: {destination}")
+
+
+def deploy_files(destination):
+    validate_deployment(destination)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    ignore = shutil.ignore_patterns(
+        "__pycache__", "*.pyc", "*.pyo", "bin", "obj", ".git", ".vs", ".idea",
+        "settings.local.json", "*.user",
+    )
+    with tempfile.TemporaryDirectory(prefix=".dward-dev-kit-stage-", dir=destination.parent) as directory:
+        stage = Path(directory) / "snapshot"
+        stage.mkdir()
+        for source in (KIT / "scripts").iterdir():
+            if source.name == "tests" or source.name == "__pycache__":
+                continue
+            target = stage / source.name
+            if source.is_dir():
+                shutil.copytree(source, target, ignore=ignore)
+            elif not source.suffix:
+                shutil.copy2(source, target)
+                target.chmod(target.stat().st_mode | 0o111)
+        for name in ("config", "skills", "templates"):
+            shutil.copytree(
+                KIT / name, stage / name,
+                ignore=lambda path, names: set(ignore(path, names)) | (
+                    {"tests"} if Path(path) == KIT / "templates" else set()
+                ),
+            )
+        shutil.copy2(KIT / "LICENSE", stage / "LICENSE")
+        (stage / ".dev-kit-deployment").write_text("dward-dev-kit\n", encoding="utf-8")
+        previous = Path(directory) / "previous"
+        if destination.exists():
+            move_deployment(destination, previous)
+        try:
+            move_deployment(stage, destination)
+        except OSError:
+            if previous.exists():
+                move_deployment(previous, destination)
+            raise
+    print(f"Deployed snapshot: {destination}", flush=True)
+
+
+def move_deployment(source, destination):
+    for attempt in range(6):
+        try:
+            source.rename(destination)
+            return
+        except PermissionError:
+            if attempt == 5:
+                raise
+            time.sleep(1)
+
+
+def windows_path_entries(current, destination, previous):
+    def normalized(value):
+        return os.path.normcase(os.path.normpath(value.rstrip("\\/")))
+
+    remove = {normalized(str(destination)), normalized(str(previous))}
+    entries = [value for value in current.split(";") if value and normalized(value) not in remove]
+    return ";".join([*entries, str(destination)])
+
+
+def configure_windows_path(destination):
+    import winreg
+
+    with winreg.CreateKey(winreg.HKEY_CURRENT_USER, "Environment") as key:
+        try:
+            current, value_type = winreg.QueryValueEx(key, "Path")
+        except FileNotFoundError:
+            current, value_type = "", winreg.REG_EXPAND_SZ
+        updated = windows_path_entries(current, destination, KIT / "scripts")
+        if updated != current:
+            winreg.SetValueEx(key, "Path", 0, value_type, updated)
+    import ctypes
+    from ctypes import wintypes
+
+    result = ctypes.c_size_t()
+    notify = ctypes.windll.user32.SendMessageTimeoutW
+    notify.argtypes = [
+        wintypes.HWND, wintypes.UINT, ctypes.c_size_t, wintypes.LPCWSTR,
+        wintypes.UINT, wintypes.UINT, ctypes.POINTER(ctypes.c_size_t),
+    ]
+    notify.restype = ctypes.c_ssize_t
+    notify(
+        0xFFFF, 0x001A, 0, "Environment", 0x0002, 5000, ctypes.byref(result),
+    )
+    print(f"Windows user PATH ready: {destination}", flush=True)
+
+
 def install(args):
     # 1. Check prerequisites and validate existing configuration before changes.
     missing = [command for command in ("dotnet", "bash", "git", "tar", "find")
@@ -192,12 +288,14 @@ def install(args):
         raise ValueError(f".NET SDK 10 or later is required; the active SDK is {sdk}.")
     config = args.nuget_config.expanduser().resolve()
     feed = args.feed.expanduser().resolve()
+    destination = args.custom_scripts.expanduser().resolve() / "dward-dev-kit"
+    validate_deployment(destination)
     profiles = (
         [path.expanduser().resolve() for path in args.profile]
         if args.profile else default_profiles(Path.home())
     )
     read_config(config)
-    scripts = bash_path(KIT / "scripts")
+    scripts = bash_path(destination)
     for path in profiles:
         profile_contents(path, scripts)
     for path in (KIT / "templates", KIT / "analyzers", KIT / "config", KIT / "skills"):
@@ -209,12 +307,16 @@ def install(args):
     pack_analyzers(config, feed)
     # 3. Add or repair the NuGet source and package-source mapping.
     configure_feed(config, feed)
-    # 4. Register or refresh the templates, including existing installations.
-    run("dotnet", "new", "install", KIT / "templates", "--force")
-    # 5. Make scripts executable and update Bash PATH without duplicate entries.
-    for path in (KIT / "scripts").iterdir():
-        if path.is_file() and not path.suffix:
-            path.chmod(path.stat().st_mode | 0o111)
+    # 4. Deploy scripts and supporting files, then register the copied templates.
+    deploy_files(destination)
+    installed = run("dotnet", "new", "uninstall", capture=True)
+    previous_templates = KIT / "templates"
+    if str(previous_templates) in installed:
+        run("dotnet", "new", "uninstall", previous_templates)
+    run("dotnet", "new", "install", destination / "templates", "--force")
+    # 5. Add the deployment to Windows user PATH and Bash profiles without duplicates.
+    if os.name == "nt" and not args.no_user_path:
+        configure_windows_path(destination)
     for path in profiles:
         contents = profile_contents(path, scripts)
         if not path.exists() or path.read_text(encoding="utf-8") != contents:
@@ -240,6 +342,13 @@ def main():
     )
     parser.add_argument("--nuget-config", type=Path, default=default_config)
     parser.add_argument("--feed", type=Path, default=Path.home() / ".nuget" / "local-feed" / "Dward")
+    parser.add_argument(
+        "--custom-scripts", type=Path,
+        default=Path.home() / "OneDrive" / "CustomScripts" if os.name == "nt" else Path.home() / "CustomScripts",
+        help="Parent directory for the deployed dward-dev-kit snapshot.",
+    )
+    parser.add_argument("--no-user-path", action="store_true",
+                        help="Skip Windows user PATH changes (Bash profiles are still updated).")
     parser.add_argument("--profile", type=Path, action="append",
                         help="Bash profile to update (repeatable); defaults to .bashrc and .bash_profile.")
     try:

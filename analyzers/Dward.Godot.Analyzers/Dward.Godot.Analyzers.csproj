@@ -10,7 +10,7 @@
     <IsRoslynComponent>true</IsRoslynComponent>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <RootNamespace>Dward.Godot.Analyzers</RootNamespace>
-    <PackageId>Dward.Godot</PackageId>
+    <PackageId>Dward.Godot.Analyzers</PackageId>
     <Version>1.0.0</Version>
     <Authors>Daniel Ward</Authors>
     <Description>Godot-specific C# diagnostic analyzers, code fixes, and opt-in resource validation.</Description>
@@ -35,9 +35,9 @@
           Pack="true"
           PackagePath="analyzers/dotnet/cs/"
           Visible="false" />
-    <None Include="Dward.Godot.targets"
+    <None Include="Dward.Godot.Analyzers.targets"
           Pack="true"
-          PackagePath="buildTransitive/Dward.Godot.targets"
+          PackagePath="buildTransitive/Dward.Godot.Analyzers.targets"
           Visible="false" />
     <None Include="GodotFreeProject.targets"
           Pack="true"

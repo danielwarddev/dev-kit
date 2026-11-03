@@ -257,6 +257,7 @@ fi
 
 [ -f "$GODOT_DIR/project.godot" ] || die "project.godot not found; is this a Godot project?"
 
+sed -i 's/Include="Dward.Godot"/Include="Dward.Godot.Analyzers"/g' "$CSPROJ"
 append_to_csproj "$CSPROJ" 'Include="Dward.Analyzers"' '  <ItemGroup>
     <PackageReference Include="Dward.Analyzers" Version="1.0.0">
       <PrivateAssets>all</PrivateAssets>
@@ -264,8 +265,8 @@ append_to_csproj "$CSPROJ" 'Include="Dward.Analyzers"' '  <ItemGroup>
   </ItemGroup>
 '
 
-append_to_csproj "$CSPROJ" 'Include="Dward.Godot"' '  <ItemGroup>
-    <PackageReference Include="Dward.Godot" Version="1.0.0">
+append_to_csproj "$CSPROJ" 'Include="Dward.Godot.Analyzers"' '  <ItemGroup>
+    <PackageReference Include="Dward.Godot.Analyzers" Version="1.0.0">
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
   </ItemGroup>
@@ -340,6 +341,7 @@ else
   log "already exists"
 fi
 
+sed -i 's/Include="Dward.Godot"/Include="Dward.Godot.Analyzers"/g' "$CORE_CSPROJ"
 append_to_csproj "$CORE_CSPROJ" 'Include="Dward.Analyzers"' '  <ItemGroup>
     <PackageReference Include="Dward.Analyzers" Version="1.0.0">
       <PrivateAssets>all</PrivateAssets>
@@ -347,8 +349,8 @@ append_to_csproj "$CORE_CSPROJ" 'Include="Dward.Analyzers"' '  <ItemGroup>
   </ItemGroup>
 '
 
-append_to_csproj "$CORE_CSPROJ" 'Include="Dward.Godot"' '  <ItemGroup>
-    <PackageReference Include="Dward.Godot" Version="1.0.0">
+append_to_csproj "$CORE_CSPROJ" 'Include="Dward.Godot.Analyzers"' '  <ItemGroup>
+    <PackageReference Include="Dward.Godot.Analyzers" Version="1.0.0">
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
   </ItemGroup>

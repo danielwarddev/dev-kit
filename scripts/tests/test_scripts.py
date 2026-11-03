@@ -272,6 +272,13 @@ class ScriptTests(unittest.TestCase):
                 before = {file: file.read_bytes() for file in resources}
                 projects = sorted(root.glob("*/*.csproj"))
                 manifests = {file: file.read_bytes() for file in projects}
+                for file in projects:
+                    content = file.read_text(encoding="utf-8")
+                    if 'Include="Dward.Godot.Analyzers"' in content:
+                        file.write_text(
+                            content.replace('Include="Dward.Godot.Analyzers"', 'Include="Dward.Godot"'),
+                            encoding="utf-8",
+                        )
                 self.assert_succeeded(run_bash(
                     root, 'bash "$(native_path "$1")"',
                     KIT / "scripts" / "godotcsharp",

@@ -6,6 +6,7 @@ import tempfile
 import unittest
 import xml.etree.ElementTree as ET
 import zipfile
+from unittest.mock import patch
 
 from test_scripts import BASH, ENVIRONMENT, KIT, run_bash
 
@@ -74,6 +75,48 @@ class InstallTests(unittest.TestCase):
             archive.writestr("analyzer.dll", b"changed")
         self.assertFalse(installer.same_package(first, second))
 
+    def test_deployment_is_an_independent_snapshot_and_updates_on_reinstall(self):
+        source = self.root / "source"
+        for name in ("scripts", "config", "skills", "templates"):
+            (source / name).mkdir(parents=True)
+        (source / "LICENSE").write_text("license", encoding="utf-8")
+        command = source / "scripts" / "example"
+        command.write_text("first", encoding="utf-8")
+        (source / "scripts" / "tests").mkdir()
+        (source / "config" / "AGENTS.md").write_text("instructions", encoding="utf-8")
+        (source / "skills" / "__pycache__").mkdir()
+        destination = self.root / "custom scripts" / "dward-dev-kit"
+        with patch.object(installer, "KIT", source):
+            installer.deploy_files(destination)
+            command.write_text("second", encoding="utf-8")
+            self.assertEqual((destination / "example").read_text(), "first")
+            (destination / "obsolete").touch()
+            installer.deploy_files(destination)
+        self.assertEqual((destination / "example").read_text(), "second")
+        self.assertFalse((destination / "obsolete").exists())
+        self.assertFalse((destination / "tests").exists())
+        self.assertFalse((destination / "skills" / "__pycache__").exists())
+        self.assertEqual((destination / "config" / "AGENTS.md").read_text(), "instructions")
+
+    def test_deployment_refuses_unmanaged_directories_and_checkout_paths(self):
+        destination = self.root / "custom scripts" / "dward-dev-kit"
+        destination.mkdir(parents=True)
+        sentinel = destination / "keep"
+        sentinel.write_text("unrelated", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "unmanaged"):
+            installer.deploy_files(destination)
+        self.assertEqual(sentinel.read_text(), "unrelated")
+        with self.assertRaisesRegex(ValueError, "outside"):
+            installer.validate_deployment(KIT / "deployment")
+
+    def test_windows_path_preserves_unrelated_entries_and_removes_duplicates(self):
+        destination = Path(r"C:\CustomScripts\dward-dev-kit")
+        previous = Path(r"C:\repos\dev-kit\scripts")
+        current = f"C:\\Other;{previous};{destination};{destination}\\"
+        updated = installer.windows_path_entries(current, destination, previous)
+        self.assertEqual(updated, f"C:\\Other;{destination}")
+        self.assertEqual(installer.windows_path_entries(updated, destination, previous), updated)
+
     @unittest.skipUnless(BASH and shutil.which("dotnet"), "Requires Bash and .NET")
     def test_install_repairs_partial_setup_and_repeats_without_duplicates(self):
         self.verify_install(partial=True)
@@ -86,6 +129,10 @@ class InstallTests(unittest.TestCase):
         config = self.root / "NuGet.Config"
         feed = self.root / "feed"
         profile = self.root / "profile"
+        custom_scripts = self.root / "custom scripts"
+        custom_scripts.mkdir()
+        (custom_scripts / "unrelated").write_text("keep", encoding="utf-8")
+        destination = custom_scripts / "dward-dev-kit"
         if partial:
             config.write_text(
                 '<configuration><!--keep--><packageSources>'
@@ -100,12 +147,13 @@ class InstallTests(unittest.TestCase):
         cli_home = self.root / "cli home"
         command = '''
             export DOTNET_CLI_HOME="$(native_path "$5")"
-            bash "$(native_path "$1")" --nuget-config "$2" --feed "$3" --profile "$4"
+            export DOTNET_ADD_GLOBAL_TOOLS_TO_PATH=false
+            bash "$(native_path "$1")" --nuget-config "$2" --feed "$3" --profile "$4" --custom-scripts "$6" --no-user-path
         '''
         snapshots = None
         for _ in range(2):
             result = run_bash(
-                self.root, command, KIT / "install", config, feed, profile, cli_home,
+                self.root, command, KIT / "install", config, feed, profile, cli_home, custom_scripts,
                 timeout=600,
             )
             self.assert_succeeded(result)
@@ -137,6 +185,9 @@ class InstallTests(unittest.TestCase):
                 self.assertIn("<!--keep-->", config.read_text())
             self.assertEqual(profile.read_text().count(installer.START), 1)
             self.assertIn("export CUSTOM_SETTING=keep", profile.read_text())
+            self.assertEqual((custom_scripts / "unrelated").read_text(), "keep")
+            self.assertTrue((destination / "new-ai-ready-library").is_file())
+            self.assertNotIn(str(KIT / "scripts"), profile.read_text())
             current = {path: path.read_bytes() for path in [config, profile, *feed.glob("*.nupkg")]}
             if snapshots is not None:
                 self.assertEqual(current, snapshots)
@@ -154,6 +205,16 @@ class InstallTests(unittest.TestCase):
              "--packages", str(self.root / "isolated packages")],
             cwd=self.root, env=environment, capture_output=True, text=True, timeout=180,
         ))
+        result = run_bash(
+            self.root,
+            'source "$(native_path "$1")"; apply-project-files "$(native_path "$2")"',
+            profile, output,
+        )
+        self.assert_succeeded(result)
+        self.assertEqual(
+            (output / "AGENTS.md").read_bytes(),
+            (destination / "config" / "AGENTS.md").read_bytes(),
+        )
         self.assert_succeeded(subprocess.run(
             ["dotnet", "build", str(project), "--no-restore", "-v", "quiet"],
             cwd=self.root, env=environment, capture_output=True, text=True, timeout=180,

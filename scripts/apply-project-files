@@ -9,7 +9,11 @@
 set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-kit_dir="$(cd "$script_dir/.." && pwd)"
+if [[ -d "$script_dir/config" && -d "$script_dir/skills" ]]; then
+    kit_dir="$script_dir"
+else
+    kit_dir="$(cd "$script_dir/.." && pwd)"
+fi
 target="${1:?Usage: apply-project-files <project-directory> [--godot]}"
 mode="${2:-}"
 [[ -z "$mode" || "$mode" == "--godot" ]] || { echo "Unknown option: $mode" >&2; exit 1; }

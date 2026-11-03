@@ -1,45 +1,41 @@
 # Dev kit
 
-A collection of the .NET tooling I use across my projects. The skills are meant to be generalized enough to be able to drop in to any .NET project, and the other tooling (scripts, analyzers, etc.) are meant to make it easy to create new projects with the standards I like so I don't have to bootstrap them every time.
+A collection of the custom .NET tooling I use across my projects. This tooling is both the standards I like (such as project template structure and Roslyn analyzers), as well as my AI instructions (skills and `AGENTS.md`), so that I don't have to bootstrap projects manually the same way over and over.
+
+## Requirements
+
+- Python 3.10+ (for install script)
+- .NET 10+ SDK
+- Git
+- Bash (as well as `tar` / `find` and `cygpath`; Git for Windows supplies all these)
+- Godot .NET (optional)
+- GitHub CLI (optional)
+- Aseprite (optional)
 
 ## Installation
-
-From a checkout, run this in Bash (Git Bash on Windows):
 
 ```bash
 bash install
 ```
 
-Requires Python 3.10+, the .NET 10+ SDK, Git, and the usual Bash tools (`tar`
-and `find`). Restore needs access to your configured NuGet sources. Godot .NET,
-GitHub CLI, and Aseprite are optional and checked separately; install them when
-using those features. The installer does not install system dependencies or
-launch the Godot editor.
+`install` runs `install.py`, which sets up everything in this repo on your local machine:
 
-The installer packs both analyzers into `~/.nuget/local-feed/Dward`, registers
-the enabled `DwardLocal` source with `Dward.*` package mapping in your user NuGet
-configuration, installs the templates, and adds this checkout's `scripts` directory
-to `.bashrc` and your existing Bash login profile (or a new `.bash_profile`).
-Open a new Bash terminal afterward. Keep the
-checkout in place; after pulling updates or moving it, rerun `bash install`.
+- Creates a local folder (configurable; default is `~/OneDrive/CustomScripts/dward-dev-kit`) where everything will be "deployed" to so that it does not depend on the local repo
+- Adds that folder to your PATH, `.bashrc`, and your Bash login profile
+- Places everything except analyzers there - .NET templates, scripts, skills, and other files used by projects (like `.editorconfig` and `AGENTS.md`)
+- Installs the .NET templates
+- For the analyzers, sets up a local Nuget feed at ~/.nuget/local-feed/Dward. The analyzers are packed and put there and `DwardLocal` is registered as a Nuget source
 
-Rerunning is safe: existing identical packages are kept, feed settings are repaired,
-templates are refreshed, and PATH blocks are updated without duplication. Other
-NuGet sources and profile content are preserved. Different package contents under
-an existing version are rejected; increment the analyzer version instead of
-overwriting packages that NuGet may already have cached.
+### Arguments
 
-Use `--feed <directory>`, `--nuget-config <file>`, or repeatable `--profile <file>`
-to override those locations. A custom NuGet config must also be supplied to
-consumer restores unless it is in their normal configuration hierarchy.
-No packages are published to a remote feed, and existing projects are not updated.
-
-Installer tests (including two runs with isolated feed/config/profiles and template
-home):
-
-```powershell
-python -m unittest discover -s .\scripts\tests -p test_install.py -v
-```
+| Argument | Default | Description |
+| --- | --- | --- |
+| `--custom-scripts <directory>` | Windows: `~/OneDrive/CustomScripts`; other platforms: `~/CustomScripts` | Parent directory for the deployed `dward-dev-kit` folder. |
+| `--feed <directory>` | `~/.nuget/local-feed/Dward` | Local directory where analyzer NuGet packages are installed. |
+| `--nuget-config <file>` | Windows: `%APPDATA%\NuGet\NuGet.Config`; other platforms: `~/.nuget/NuGet/NuGet.Config` | NuGet configuration to register the local source and package mapping in. Custom locations must also be supplied to restores unless they are in the normal NuGet configuration hierarchy. |
+| `--profile <file>` | `.bashrc` plus the first existing `.bash_profile`, `.bash_login`, or `.profile`; creates `.bash_profile` if none exist | Bash profile to update; repeat this argument to update multiple files. |
+| `--no-user-path` | Windows user PATH is updated | Skip Windows user PATH changes. Bash profiles are still updated. |
+| `-h`, `--help` | | Show installer usage and exit without installing. |
 
 ## Skills
 

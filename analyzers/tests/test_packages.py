@@ -109,7 +109,7 @@ class AnalyzerPackageTests(unittest.TestCase):
             "    [Godot.Export] public int Count = 3;\n"
             "    public int Read() => Count;\n}"
         )
-        self.create_consumer("Dward.Godot", code, "DWARDGD0001")
+        self.create_consumer("Dward.Godot.Analyzers", code, "DWARDGD0001")
         self.assert_packaged_fix(
             "DWARDGD0001", code, code.replace("public int Count", "private int Count"),
         )
