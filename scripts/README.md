@@ -14,7 +14,10 @@ python -m unittest discover -s .\scripts\tests -p test_scripts.py -v
 # Installer tests only
 python -m unittest discover -s .\scripts\tests -p test_install.py -v
 
-# Both suites
+# Pull/push project file tests only
+python -m unittest discover -s .\scripts\tests -p test_sync_skills.py -v
+
+# All test suites
 python -m unittest discover -s .\scripts\tests -v
 ```
 
@@ -34,4 +37,3 @@ Installer script tests use isolated feeds, Nuget configs, profiles, and .NET and
 - Unmanaged-folder protection
 - Package comparison
 - Consumer restore/build. They use isolated feeds, NuGet configs, profiles, and .NET
-

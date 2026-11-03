@@ -109,6 +109,8 @@ Bash scripts for general helpfulness, and also to be used in conjunction with th
 | `new-ai-ready-app` | `-t <template> -n <name>` | The shared implementation behind the below row. Creates a new project from a .NET template then runs the `update-packages` and `apply-project-files` scripts. |
 | `new-ai-ready-<apptype>-app` | | Small scripts which just set which .NET template to use and then call `new-ai-ready-app`. |
 | `apply-project-files` | `<directory> [--godot\|--blazor]` | Copies `.editorconfig`, `Directory.Build.props`, `AGENTS.md`, `CLAUDE.md`, and the relevant agent skills into the project. |
+| `pull-project-files` | `[project-directory]` | Convenience script since I don't like using plugins for a central skill location - instead, I like to edit the skills on the fly as needed from any project. This script allows me to pull the latest skills, `AGENTS.md`, and `.editorconfig` into the current directory. The push script below allows me to send the current directory's above files to this repo so I can update them. |
+| `push-project-files` | `<dev-kit-repo> [project-directory]` | See above |
 | `update-packages` | `[directory]` | Runs `dotnet package update --project` on `.csproj` files in the directory, which updates package sto their latest stable version, regardless of their version in the .NET template. |
 
 

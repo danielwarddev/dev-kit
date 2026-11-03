@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+direction="$1"
+script_dir="$2"
+shift 2
+if [[ -d "$script_dir/config" && -d "$script_dir/skills" ]]; then
+    kit_dir="$script_dir"
+else
+    kit_dir="$(cd "$script_dir/.." && pwd)"
+fi
+arguments=("$kit_dir")
+for argument in "$@"; do
+    arguments+=("$argument")
+done
+if command -v cygpath >/dev/null 2>&1; then
+    for index in "${!arguments[@]}"; do
+        if [[ "${arguments[$index]}" != -* ]]; then
+            arguments[$index]="$(cygpath -w "${arguments[$index]}")"
+        fi
+    done
+fi
+for python_command in python3 python; do
+    if command -v "$python_command" >/dev/null 2>&1 \
+        && "$python_command" -c 'import sys; sys.exit(sys.version_info < (3, 10))' 2>/dev/null; then
+        exec "$python_command" "$script_dir/sync-skills_Resources/sync.py" "$direction" "${arguments[@]}"
+    fi
+done
+echo "ERROR: Python 3.10 or later is required." >&2
+exit 1
