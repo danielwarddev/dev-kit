@@ -72,8 +72,8 @@ Custom Rosyln analyzers (and code fixes where relevant) with some standards I li
 | --- | --- |
 | `DWARDGD0001` | Require Godot `[Export]` fields and properties to be private. If these need to be exposed, a read-only property should be created instead. |
 | `DWARDGD0002` | Reject Godot dependencies in projects explicitly marked Godot-free. I like having a Core project with as much game logic as possible that is separate from the actual Godot dependencies. This makes this logic easy to unit test. |
-| `DWARDGD0007` | Validates constant input-action names against custom project actions and built-in Godot ones. Ensures the magic string input actions the code calls are actually defined. |
-| `DWARDGD0008` | Enforces that there is exactly one `project.godot` file that is configured correctly for input action validation. |
+| `DWARDGD0003` | Validates constant input-action names against custom project actions and built-in Godot ones. Ensures the magic string input actions the code calls are actually defined. |
+| `DWARDGD0004` | Enforces that there is exactly one `project.godot` file that is configured correctly for input action validation. |
 
 ## Templates
 

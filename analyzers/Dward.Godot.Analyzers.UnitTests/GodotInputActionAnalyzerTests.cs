@@ -73,13 +73,13 @@ public class GodotInputActionAnalyzerTests
                 }
             }
             """;
-        _analyzerTester.ExpectedDiagnostics.Add(new DiagnosticResult("DWARDGD0007", DiagnosticSeverity.Warning)
+        _analyzerTester.ExpectedDiagnostics.Add(new DiagnosticResult("DWARDGD0003", DiagnosticSeverity.Warning)
             .WithLocation(0).WithArguments("misspelled"));
-        _analyzerTester.ExpectedDiagnostics.Add(new DiagnosticResult("DWARDGD0007", DiagnosticSeverity.Warning)
+        _analyzerTester.ExpectedDiagnostics.Add(new DiagnosticResult("DWARDGD0003", DiagnosticSeverity.Warning)
             .WithLocation(1).WithArguments("missing"));
-        _analyzerTester.ExpectedDiagnostics.Add(new DiagnosticResult("DWARDGD0007", DiagnosticSeverity.Warning)
+        _analyzerTester.ExpectedDiagnostics.Add(new DiagnosticResult("DWARDGD0003", DiagnosticSeverity.Warning)
             .WithLocation(2).WithArguments("not_declared"));
-        _analyzerTester.ExpectedDiagnostics.Add(new DiagnosticResult("DWARDGD0007", DiagnosticSeverity.Warning)
+        _analyzerTester.ExpectedDiagnostics.Add(new DiagnosticResult("DWARDGD0003", DiagnosticSeverity.Warning)
             .WithLocation(3).WithArguments("absent"));
 
         await _analyzerTester.RunAsync(TestContext.Current.CancellationToken);
@@ -99,11 +99,11 @@ public class GodotInputActionAnalyzerTests
                 }
             }
             """;
-        _analyzerTester.ExpectedDiagnostics.Add(new DiagnosticResult("DWARDGD0007", DiagnosticSeverity.Warning)
+        _analyzerTester.ExpectedDiagnostics.Add(new DiagnosticResult("DWARDGD0003", DiagnosticSeverity.Warning)
             .WithLocation(0).WithArguments("down"));
-        _analyzerTester.ExpectedDiagnostics.Add(new DiagnosticResult("DWARDGD0007", DiagnosticSeverity.Warning)
+        _analyzerTester.ExpectedDiagnostics.Add(new DiagnosticResult("DWARDGD0003", DiagnosticSeverity.Warning)
             .WithLocation(1).WithArguments("right"));
-        _analyzerTester.ExpectedDiagnostics.Add(new DiagnosticResult("DWARDGD0007", DiagnosticSeverity.Warning)
+        _analyzerTester.ExpectedDiagnostics.Add(new DiagnosticResult("DWARDGD0003", DiagnosticSeverity.Warning)
             .WithLocation(2).WithArguments("left"));
 
         await _analyzerTester.RunAsync(TestContext.Current.CancellationToken);
@@ -153,7 +153,7 @@ public class GodotInputActionAnalyzerTests
                 }
             }
             """;
-        _analyzerTester.ExpectedDiagnostics.Add(new DiagnosticResult("DWARDGD0007", DiagnosticSeverity.Warning)
+        _analyzerTester.ExpectedDiagnostics.Add(new DiagnosticResult("DWARDGD0003", DiagnosticSeverity.Warning)
             .WithLocation(0).WithArguments("ui_typo"));
 
         await _analyzerTester.RunAsync(TestContext.Current.CancellationToken);
@@ -253,7 +253,7 @@ public class GodotInputActionAnalyzerTests
             """;
         _analyzerTester.TestState.AnalyzerConfigFiles.Add(("/.globalconfig", """
             is_global = true
-            dotnet_diagnostic.DWARDGD0007.severity = none
+            dotnet_diagnostic.DWARDGD0003.severity = none
             """));
 
         await _analyzerTester.RunAsync(TestContext.Current.CancellationToken);
@@ -276,7 +276,7 @@ public class GodotInputActionAnalyzerTests
     {
         _analyzerTester.TestState.AdditionalFiles.Clear();
         _analyzerTester.TestState.AdditionalFiles.Add(("project.godot", configuration));
-        _analyzerTester.ExpectedDiagnostics.Add(new DiagnosticResult("DWARDGD0008", DiagnosticSeverity.Warning)
+        _analyzerTester.ExpectedDiagnostics.Add(new DiagnosticResult("DWARDGD0004", DiagnosticSeverity.Warning)
             .WithNoLocation().WithArguments("the [input] section is malformed"));
 
         await _analyzerTester.RunAsync(TestContext.Current.CancellationToken);
@@ -288,7 +288,7 @@ public class GodotInputActionAnalyzerTests
         _analyzerTester.TestState.AdditionalFiles.Add(("nested/project.godot", """
             config_version=5
             """));
-        _analyzerTester.ExpectedDiagnostics.Add(new DiagnosticResult("DWARDGD0008", DiagnosticSeverity.Warning)
+        _analyzerTester.ExpectedDiagnostics.Add(new DiagnosticResult("DWARDGD0004", DiagnosticSeverity.Warning)
             .WithNoLocation().WithArguments("multiple project.godot AdditionalFiles were supplied"));
 
         await _analyzerTester.RunAsync(TestContext.Current.CancellationToken);

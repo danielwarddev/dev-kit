@@ -11,12 +11,12 @@ namespace Dward.Godot.Analyzers
     public class GodotInputActionAnalyzer : DiagnosticAnalyzer
     {
         private static readonly DiagnosticDescriptor _unknownAction = new(
-            "DWARDGD0007", "Use declared Godot input actions",
+            "DWARDGD0003", "Use declared Godot input actions",
             "Input action '{0}' is not declared in project.godot or among the Godot built-ins; correct the argument to an existing action, or add the intended action and bindings under [input] in project.godot",
             "Correctness", DiagnosticSeverity.Warning, isEnabledByDefault: true,
             description: "Use an existing project action or an exact supported Godot built-in name. For a genuinely new action, define its events and deadzone in Project Settings > Input Map (the [input] section of project.godot).");
         private static readonly DiagnosticDescriptor _invalidConfiguration = new(
-            "DWARDGD0008", "Supply one readable Godot input configuration to the C# project",
+            "DWARDGD0004", "Supply one readable Godot input configuration to the C# project",
             "Godot input action validation cannot run: {0}; supply exactly one readable project.godot AdditionalFile for the actual Godot project and repair its [input] dictionaries",
             "Configuration", DiagnosticSeverity.Warning, isEnabledByDefault: true,
             description: "Keep exactly one <AdditionalFiles Include=\"project.godot\" /> entry pointing to the actual Godot project's settings; remove duplicate inclusions and correct missing or unreadable paths. Malformed [input] dictionaries can be repaired through Project Settings > Input Map.",

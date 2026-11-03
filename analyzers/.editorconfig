@@ -16,8 +16,8 @@ dotnet_diagnostic.DWARD0004.severity = error
 # Only allow "Async" suffix on async declarations that have a non-async counterpart
 dotnet_diagnostic.DWARD0005.severity = error
 # Validate constant Godot.Input actions against the supplied project.godot
-dotnet_diagnostic.DWARDGD0007.severity = error
-dotnet_diagnostic.DWARDGD0008.severity = error
+dotnet_diagnostic.DWARDGD0003.severity = error
+dotnet_diagnostic.DWARDGD0004.severity = error
 # Reject general exception catches that do not rethrow
 dotnet_diagnostic.CA1031.severity = error
 # Preserve the original stack trace when rethrowing a caught exception
