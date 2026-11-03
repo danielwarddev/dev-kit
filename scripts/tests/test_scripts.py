@@ -72,6 +72,36 @@ class ScriptTests(unittest.TestCase):
                      / "writing-csharp.md").read_bytes(),
                 )
 
+    def test_defaults_include_blazor_skill_only_in_blazor_mode(self):
+        for mode in ("", "--godot", "--blazor"):
+            with self.subTest(mode=mode):
+                target = self.root / (mode.lstrip("-") or "standard")
+                target.mkdir()
+                for _ in range(2):
+                    self.assert_succeeded(run_bash(
+                        self.root,
+                        'bash "$(native_path "$1")" "$(native_path "$2")" "${@:3}"',
+                        KIT / "scripts" / "apply-project-files", target,
+                        *([mode] if mode else []),
+                    ))
+                skill = target / ".claude" / "skills" / "blazor-frontend"
+                self.assertEqual(skill.exists(), mode == "--blazor")
+                if mode == "--blazor":
+                    source = KIT / "skills" / "blazor-frontend"
+                    for file in source.rglob("*"):
+                        if file.is_file():
+                            self.assertEqual(
+                                (skill / file.relative_to(source)).read_bytes(),
+                                file.read_bytes(),
+                            )
+                    (skill / "SKILL.md").write_text("custom Blazor skill", encoding="utf-8")
+                    self.assert_succeeded(run_bash(
+                        self.root,
+                        'bash "$(native_path "$1")" "$(native_path "$2")" --blazor',
+                        KIT / "scripts" / "apply-project-files", target,
+                    ))
+                    self.assertEqual((skill / "SKILL.md").read_text(), "custom Blazor skill")
+
     def test_defaults_preserve_existing_files_and_skill_directories(self):
         target = self.root / "existing project"
         target.mkdir()
@@ -140,12 +170,26 @@ class ScriptTests(unittest.TestCase):
                     if not skip_solution:
                         self.assertEqual(
                             sorted(path.name for path in skills.iterdir()),
-                            ["csharp-standards", "feature-specs"],
+                            (["blazor-frontend"] if starter == "mudblazor" else [])
+                            + ["csharp-standards", "feature-specs"],
                         )
                         for skill in skills.iterdir():
                             source = KIT / "skills" / skill.name
                             for file in source.rglob("*"):
                                 if file.is_file() and "__pycache__" not in file.parts and file.suffix not in (".pyc", ".pyo"):
+                                    if skill.name == "csharp-standards":
+                                        if file.name == "godot-development.md":
+                                            self.assertFalse((skill / file.relative_to(source)).exists())
+                                            continue
+                                        if file.name == "SKILL.md":
+                                            self.assertEqual(
+                                                (skill / "SKILL.md").read_text(),
+                                                "".join(
+                                                    line for line in file.read_text().splitlines(keepends=True)
+                                                    if not (line.startswith("|") and "godot-development.md" in line)
+                                                ),
+                                            )
+                                            continue
                                     self.assertEqual(
                                         (skill / file.relative_to(source)).read_bytes(),
                                         file.read_bytes(),

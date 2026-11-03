@@ -108,7 +108,7 @@ Bash scripts for general helpfulness, and also to be used in conjunction with th
 | `ghinit` | `[--localOnly] [--private] [--blog]` | Initializes a new git repo, adds a .gitignore, pushes to a new GitHub repo, and sets a relevant README if it's for one of my blog posts. Also used by `godotcsharp` (see below section). |
 | `new-ai-ready-app` | `-t <template> -n <name>` | The shared implementation behind the below row. Creates a new project from a .NET template then runs the `update-packages` and `apply-project-files` scripts. |
 | `new-ai-ready-<apptype>-app` | | Small scripts which just set which .NET template to use and then call `new-ai-ready-app`. |
-| `apply-project-files` | `<directory> [--godot]` | Copies `.editorconfig`, `Directory.Build.props`, `AGENTS.md`, `CLAUDE.md`, and the relevant agent skills into the project. |
+| `apply-project-files` | `<directory> [--godot\|--blazor]` | Copies `.editorconfig`, `Directory.Build.props`, `AGENTS.md`, `CLAUDE.md`, and the relevant agent skills into the project. |
 | `update-packages` | `[directory]` | Runs `dotnet package update --project` on `.csproj` files in the directory, which updates package sto their latest stable version, regardless of their version in the .NET template. |
 
 

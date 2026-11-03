@@ -91,7 +91,11 @@ fi
 dotnet new "${dotnet_new_args[@]}"
 
 if [[ "$skip_solution" != true ]]; then
-    bash "$script_dir/apply-project-files" "$project_path"
+    project_files_args=("$project_path")
+    if [[ "$template" == "ai-ready-mudblazor" ]]; then
+        project_files_args+=(--blazor)
+    fi
+    bash "$script_dir/apply-project-files" "${project_files_args[@]}"
 fi
 
 if [[ "$skip_package_update" != true ]]; then

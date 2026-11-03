@@ -14,9 +14,9 @@ if [[ -d "$script_dir/config" && -d "$script_dir/skills" ]]; then
 else
     kit_dir="$(cd "$script_dir/.." && pwd)"
 fi
-target="${1:?Usage: apply-project-files <project-directory> [--godot]}"
+target="${1:?Usage: apply-project-files <project-directory> [--godot|--blazor]}"
 mode="${2:-}"
-[[ -z "$mode" || "$mode" == "--godot" ]] || { echo "Unknown option: $mode" >&2; exit 1; }
+[[ -z "$mode" || "$mode" == "--godot" || "$mode" == "--blazor" ]] || { echo "Unknown option: $mode" >&2; exit 1; }
 [[ $# -le 2 && -d "$target" ]] || { echo "Expected an existing project directory." >&2; exit 1; }
 
 copy_missing() {
@@ -48,6 +48,8 @@ done
 skills=(csharp-standards feature-specs)
 if [[ "$mode" == "--godot" ]]; then
     skills+=(aseprite godot-engine godot-playtesting)
+elif [[ "$mode" == "--blazor" ]]; then
+    skills+=(blazor-frontend)
 fi
 for skill in "${skills[@]}"; do
     [[ -f "$kit_dir/skills/$skill/SKILL.md" ]] || { echo "Missing skill: $skill" >&2; exit 1; }

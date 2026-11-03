@@ -1,6 +1,8 @@
 # Skills
 
-Project-agnostic agent skills I use across my projects (except only using the Godot-related skills in Godot projects).
+Project-agnostic agent skills I use across my projects. Godot-related skills are
+included only in Godot projects, and `blazor-frontend` is only included only in Blazor
+projects.
 
 ## Testing
 
