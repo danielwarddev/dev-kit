@@ -2,6 +2,45 @@
 
 A collection of the .NET tooling I use across my projects. The skills are meant to be generalized enough to be able to drop in to any .NET project, and the other tooling (scripts, analyzers, etc.) are meant to make it easy to create new projects with the standards I like so I don't have to bootstrap them every time.
 
+## Installation
+
+From a checkout, run this in Bash (Git Bash on Windows):
+
+```bash
+bash install
+```
+
+Requires Python 3.10+, the .NET 10+ SDK, Git, and the usual Bash tools (`tar`
+and `find`). Restore needs access to your configured NuGet sources. Godot .NET,
+GitHub CLI, and Aseprite are optional and checked separately; install them when
+using those features. The installer does not install system dependencies or
+launch the Godot editor.
+
+The installer packs both analyzers into `~/.nuget/local-feed/Dward`, registers
+the enabled `DwardLocal` source with `Dward.*` package mapping in your user NuGet
+configuration, installs the templates, and adds this checkout's `scripts` directory
+to `.bashrc` and your existing Bash login profile (or a new `.bash_profile`).
+Open a new Bash terminal afterward. Keep the
+checkout in place; after pulling updates or moving it, rerun `bash install`.
+
+Rerunning is safe: existing identical packages are kept, feed settings are repaired,
+templates are refreshed, and PATH blocks are updated without duplication. Other
+NuGet sources and profile content are preserved. Different package contents under
+an existing version are rejected; increment the analyzer version instead of
+overwriting packages that NuGet may already have cached.
+
+Use `--feed <directory>`, `--nuget-config <file>`, or repeatable `--profile <file>`
+to override those locations. A custom NuGet config must also be supplied to
+consumer restores unless it is in their normal configuration hierarchy.
+No packages are published to a remote feed, and existing projects are not updated.
+
+Installer tests (including two runs with isolated feed/config/profiles and template
+home):
+
+```powershell
+python -m unittest discover -s .\scripts\tests -p test_install.py -v
+```
+
 ## Skills
 
 Common skills I use across my .NET projects. Some are Godot-specific, so I use a script to install the skills, which removes the Godot glossary entries from AGENTS.md if it's not a Godot project.

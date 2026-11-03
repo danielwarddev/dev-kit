@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Convenience script to call down to the Python script, which is what really does the work
+# Ensures Python 3.10 is installed and allows the install to be ran from bash
+set -euo pipefail
+
+kit_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+for python_command in python3 python; do
+    if command -v "$python_command" >/dev/null 2>&1 \
+        && "$python_command" -c 'import sys; sys.exit(sys.version_info < (3, 10))' 2>/dev/null; then
+        exec "$python_command" "$kit_dir/install.py" "$@"
+    fi
+done
+echo "ERROR: Python 3.10 or later is required. Install it, then rerun this script." >&2
+exit 1
