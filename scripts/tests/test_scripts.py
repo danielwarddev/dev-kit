@@ -45,6 +45,33 @@ class ScriptTests(unittest.TestCase):
     def assert_succeeded(self, result):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
+    def test_defaults_include_godot_reference_only_in_godot_mode(self):
+        for mode in ("", "--godot"):
+            with self.subTest(mode=mode):
+                target = self.root / ("godot" if mode else "standard")
+                target.mkdir()
+                for _ in range(2):
+                    self.assert_succeeded(run_bash(
+                        self.root,
+                        'bash "$(native_path "$1")" "$(native_path "$2")" "${@:3}"',
+                        KIT / "scripts" / "apply-project-files", target,
+                        *([mode] if mode else []),
+                    ))
+                skill = target / ".claude" / "skills" / "csharp-standards"
+                self.assertEqual(
+                    (skill / "references" / "godot-development.md").exists(),
+                    bool(mode),
+                )
+                self.assertEqual(
+                    "godot-development.md" in (skill / "SKILL.md").read_text(),
+                    bool(mode),
+                )
+                self.assertEqual(
+                    (skill / "references" / "writing-csharp.md").read_bytes(),
+                    (KIT / "skills" / "csharp-standards" / "references"
+                     / "writing-csharp.md").read_bytes(),
+                )
+
     def test_defaults_preserve_existing_files_and_skill_directories(self):
         target = self.root / "existing project"
         target.mkdir()
@@ -52,6 +79,9 @@ class ScriptTests(unittest.TestCase):
         skill = target / ".claude" / "skills" / "csharp-standards"
         skill.mkdir(parents=True)
         (skill / "SKILL.md").write_text("custom skill", encoding="utf-8")
+        references = skill / "references"
+        references.mkdir()
+        (references / "godot-development.md").write_text("custom reference", encoding="utf-8")
         for _ in range(2):
             self.assert_succeeded(run_bash(
                 self.root, 'bash "$(native_path "$1")" "$(native_path "$2")"',
@@ -59,7 +89,8 @@ class ScriptTests(unittest.TestCase):
             ))
         self.assertEqual((target / "AGENTS.md").read_text(), "custom instructions")
         self.assertEqual((skill / "SKILL.md").read_text(), "custom skill")
-        self.assertEqual(sorted(path.name for path in skill.iterdir()), ["SKILL.md"])
+        self.assertEqual(sorted(path.name for path in skill.iterdir()), ["SKILL.md", "references"])
+        self.assertEqual((references / "godot-development.md").read_text(), "custom reference")
         self.assertEqual(
             (target / ".editorconfig").read_bytes(),
             (KIT / "config" / ".editorconfig").read_bytes(),

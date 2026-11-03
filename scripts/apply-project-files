@@ -26,9 +26,16 @@ copy_missing() {
     else
         mkdir -p "$(dirname "$destination")"
         if [[ -d "$source" ]]; then
+            local exclusions=(--exclude=__pycache__ --exclude='*.pyc' --exclude='*.pyo')
+            if [[ "$mode" != "--godot" && "$source" == "$kit_dir/skills/csharp-standards" ]]; then
+                exclusions+=(--exclude=./references/godot-development.md)
+            fi
             mkdir "$destination"
-            tar -C "$source" --exclude=__pycache__ --exclude='*.pyc' --exclude='*.pyo' -cf - . \
+            tar -C "$source" "${exclusions[@]}" -cf - . \
                 | tar -C "$destination" -xf -
+            if [[ "$mode" != "--godot" && "$source" == "$kit_dir/skills/csharp-standards" ]]; then
+                sed -i '/^|.*godot-development\.md.*|$/d' "$destination/SKILL.md"
+            fi
         else
             cp "$source" "$destination"
         fi

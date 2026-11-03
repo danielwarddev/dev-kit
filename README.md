@@ -97,6 +97,7 @@ There are some files that projects or solutions share and should always be copie
 | `Directory.Build.props` | Always treat warnings as errors. |
 | `AGENTS.md` | AI instructions; self-explanatory. |
 | `CLAUDE.md` | Just points to `@AGENTS.md`, if using Claude Code. |
+| `skills/` | The skills folder. If a non-Godot project, then doesn't bring over `aseprite`, `godot-engine`, or `godot-playtesting`, and also removes `godot-development` from `csharp-standards` skill and removes its entry from the table in `SKILL.md`.
 
 ## Scripts
 
