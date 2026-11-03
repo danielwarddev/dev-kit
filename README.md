@@ -30,12 +30,12 @@ bash install
 
 | Argument | Default | Description |
 | --- | --- | --- |
+| `-h`, `--help` | | Show installer usage and exit without installing. |
 | `--custom-scripts <directory>` | Windows: `~/OneDrive/CustomScripts`; other platforms: `~/CustomScripts` | Parent directory for the deployed `dward-dev-kit` folder. |
 | `--feed <directory>` | `~/.nuget/local-feed/Dward` | Local directory where analyzer NuGet packages are installed. |
 | `--nuget-config <file>` | Windows: `%APPDATA%\NuGet\NuGet.Config`; other platforms: `~/.nuget/NuGet/NuGet.Config` | NuGet configuration to register the local source and package mapping in. Custom locations must also be supplied to restores unless they are in the normal NuGet configuration hierarchy. |
 | `--profile <file>` | `.bashrc` plus the first existing `.bash_profile`, `.bash_login`, or `.profile`; creates `.bash_profile` if none exist | Bash profile to update; repeat this argument to update multiple files. |
 | `--no-user-path` | Windows user PATH is updated | Skip Windows user PATH changes. Bash profiles are still updated. |
-| `-h`, `--help` | | Show installer usage and exit without installing. |
 
 ## Skills
 
@@ -102,17 +102,16 @@ There are some files that projects or solutions share and should always be copie
 
 Bash scripts for general helpfulness, and also to be used in conjunction with the .NET templates to bring in everything I want for the projects. Running a script will  create a new project using one of the .NET templates, update all the Nuget packages to the latest stable version, and bring over the `.editorconfig` file, `Directory.Build.props` file, and agent instructions (skills and `AGENTS.md`).
 
-| Script | Description |
-| --- | --- |
-| `ghinit [--localOnly] [--private] [--blog]` | Initializes a new git repo, adds a .gitignore, pushes to a new GitHub repo, and sets a relevant README if it's for one of my blog posts. Also used by `godotcsharp` (see below section). |
-| `new-ai-ready-app -t <template> -n <name>` | The shared implementation behind the below row. Creates a new project from a .NET template then runs the `update-packages` and `apply-project-files` scripts. |
-| `new-ai-ready-<apptype>-app` | Small scripts which just set which .NET template to use and then call `new-ai-ready-app`. |
-| `apply-project-files <directory> [--godot]` | Copies `.editorconfig`, `Directory.Build.props`, `AGENTS.md`, `CLAUDE.md`, and the relevant agent skills into the project. |
-| `update-packages [directory]` | Runs `dotnet package update --project` on `.csproj` files in the directory, which updates package sto their latest stable version, regardless of their version in the .NET template. |
+| Script | Arguments | Description |
+| --- | --- | --- |
+| `ghinit` | `[--localOnly] [--private] [--blog]` | Initializes a new git repo, adds a .gitignore, pushes to a new GitHub repo, and sets a relevant README if it's for one of my blog posts. Also used by `godotcsharp` (see below section). |
+| `new-ai-ready-app` | `-t <template> -n <name>` | The shared implementation behind the below row. Creates a new project from a .NET template then runs the `update-packages` and `apply-project-files` scripts. |
+| `new-ai-ready-<apptype>-app` | | Small scripts which just set which .NET template to use and then call `new-ai-ready-app`. |
+| `apply-project-files` | `<directory> [--godot]` | Copies `.editorconfig`, `Directory.Build.props`, `AGENTS.md`, `CLAUDE.md`, and the relevant agent skills into the project. |
+| `update-packages` | `[directory]` | Runs `dotnet package update --project` on `.csproj` files in the directory, which updates package sto their latest stable version, regardless of their version in the .NET template. |
 
 
 ```bash
-# Example
 bash scripts/new-ai-ready-console-app -n MyApp -o "$HOME/projects"
 ```
 
@@ -127,6 +126,6 @@ The `godotcsharp` script is slightly different than the other, as it does not us
 - Creates an xUnit test project for the `Core` project
 
 ```bash
-# Example - bootstrap creates a new dir for you and puts the game in it
+# --bootstrap creates a new project in a new dir for you and puts the game in it
 godotcsharp --bootstrap MyCoolNewGame
 ```
