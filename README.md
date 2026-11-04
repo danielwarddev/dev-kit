@@ -2,6 +2,16 @@
 
 A collection of the custom .NET tooling I use across my projects. This tooling is both the standards I like (such as project template structure and Roslyn analyzers), as well as my AI instructions (skills and `AGENTS.md`), so that I don't have to bootstrap projects manually the same way over and over.
 
+## Table of contents
+
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Skills](#skills)
+- [Analyzers](#analyzers)
+- [Templates](#templates)
+- [Shared configuration](#shared-configuration)
+- [Scripts](#scripts)
+
 ## Requirements
 
 - Python 3.10+ (for install script)
