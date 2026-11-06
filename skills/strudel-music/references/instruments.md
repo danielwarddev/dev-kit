@@ -49,7 +49,8 @@ do not excuse a thin result: another appropriate family can supply the role.
 - **Drum machines:** REPL `Sounds` -> drum machines includes RolandTR808,
   RolandTR909, RolandTR707, and AkaiLinn. `.bank(...)` prefixes standard drum
   names (`bd`, `sd`, `hh`, etc.). In the renderer, explicitly register a
-  compatible sample map first. Verify each pack's license independently.
+  compatible sample map first. Verify each pack's license independently, using
+  the license review in `SKILL.md`.
 - **General MIDI/soundfonts:** REPL examples include `gm_acoustic_bass`,
   `gm_electric_guitar_muted`, `gm_xylophone`, and `gm_synth_strings_1`. The pinned
   `@strudel/web` bundle does NOT register `gm_*` soundfonts. Use an explicitly

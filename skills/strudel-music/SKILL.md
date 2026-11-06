@@ -208,6 +208,23 @@ Preserve source revisions, base pitches, licenses and credits in cue metadata.
 Sample packs and SoundFonts have their own licenses.
 Never assume a sound's availability in Strudel makes it redistributable.
 
+### License review
+
+Check the license of every SoundFont, sample pack, wavetable, or recording
+before using it in a cue, and before downloading or registering a new one.
+
+- **Use freely:** CC0/public domain. With attribution recorded in cue metadata
+  credits: CC-BY, MIT, BSD, Apache-2.0, and zlib.
+- **Alert the user for anything else**, then follow their decision; do not
+  refuse on your own. This includes custom licenses (even ones that permit
+  commercial music), CC-BY-SA, GPL/LGPL, non-commercial (NC), no-derivatives
+  (ND), personal-use-only, and unknown or missing licenses. Name the source,
+  its license, and the concern, such as share-alike reaching rendered music, no
+  commercial use, or sample-redistribution limits on near-raw sound effects.
+  Alert once per source per task, not for each cue that reuses it.
+
+This is a practical screen, not legal advice.
+
 Use Strudel as an authoring tool and deliver rendered audio by default. Its
 AGPL software license is separate from sample and composition rights. Do not
 embed the Strudel runtime into a game's distributable or change the project's

@@ -46,10 +46,11 @@ per project. Do not commit or embed banks into the game by default.
 - **GeneralUser GS 2.0.3:** author permits private/commercial music creation.
   The custom license discloses uncertainty about some inherited sample origins.
   Treat it as an audition/prototype option, not a claim of cleared commercial
-  provenance; review before shipping or redistributing the bank.
+  provenance; review before shipping or redistributing the bank. Its custom
+  license needs a user alert under the license review in `SKILL.md`.
 
 Other SF2 banks can be added to the shared catalog after verifying source,
-checksum, and rights. Entries carry a stable `id`, relative SF2 `file`, `tags`,
+checksum, and rights, applying the license review in `SKILL.md`. Entries carry a stable `id`, relative SF2 `file`, `tags`,
 `strengths`, `presetCoverage`, version, download URL/format, integrity checks,
 size and licensing/provenance. `fileSha256` describes the extracted SF2;
 `sha256` describes the downloaded resource, which may be an archive. A catalog
