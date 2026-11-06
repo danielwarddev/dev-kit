@@ -78,8 +78,13 @@ try {
             if ($LASTEXITCODE -ne 0) { throw 'Could not unpack the verified Debian container.' }
             & $tar -xf (Join-Path $extract 'data.tar.xz') -C $extract
             if ($LASTEXITCODE -ne 0) { throw 'Could not unpack the verified SoundFont data.' }
-            $font = Join-Path $extract ('usr\share\sounds\sf2\' + $bank.file)
-            $license = Join-Path $extract 'usr\share\doc\fluid-soundfont-gm\copyright'
+            $font = Join-Path $extract $(if ($bank.archiveFile) { $bank.archiveFile } else { 'usr\share\sounds\sf2\' + $bank.file })
+            if ($bank.licenseFile) {
+                $license = Join-Path $extract $bank.licenseFile
+            } else {
+                $license = Join-Path $temporary ($bank.id + '.LICENSE.txt')
+                Get-VerifiedDownload $bank.licenseSource $license ''
+            }
         } elseif ($bank.format -eq 'archive') {
             $extract = Join-Path $temporary $bank.id
             $arguments = @((Join-Path $PSScriptRoot 'soundfont-archive.mjs'), $download, $extract, $bank.archiveFile)

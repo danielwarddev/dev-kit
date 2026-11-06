@@ -36,8 +36,10 @@ this skill's directory, not the project directory.
    registered SoundFonts are present, stop and use `ask_user` to ask whether the
    user would like to get some. Do not create a catalog, download banks, continue
    with an empty library, or silently switch to synthesis before that decision.
-   If they decline, stop. If they agree, review/approve sources, licenses and
-   sizes before invoking explicit setup. Preserve existing user files.
+   If they decline, stop. If they agree, follow "Choosing and registering a
+   bank" in `references\banks.md`: the skill ships no banks, so propose
+   candidates that fit this song and get approval of sources, licenses and
+   sizes before invoking setup. Preserve existing user files.
 2. Ask internally: what emotions should the player feel, what is underneath
    those emotions, and how should they change through the cue? Infer this from
    the prompt, gameplay purpose, and game context; do not make it a repeated
@@ -69,7 +71,7 @@ this skill's directory, not the project directory.
    foreground. Keep these decisions compact and internal, not a user review
    checkpoint. Choose sounds and an appropriate musical form from that design.
    Be free to select new instrumental families when the emotion calls for them.
-   Do not let the last cue, sample cache, or starter palette become a sonic
+   Do not let the last cue, sample cache, or previously used bank become a sonic
    template. Find and register additional licensed instruments when needed.
    Consider the sound library itself, not only instrument names in VCSL/VSCO.
    A different bank can change tone substantially; use the native SoundFont
@@ -81,7 +83,7 @@ this skill's directory, not the project directory.
    or keeping one permanent bank for the game.
    Plan how the cue will sound full: consider strings/ensembles, pads, guitars,
    piano/keys, wordless vocals, percussion, sustain, reverb, and delay as options,
-   then select complementary roles. Do not restrict the palette to the starter
+   then select complementary roles. Do not restrict the palette to familiar
    sounds or default to only a plucked backing and a melody.
    Acoustic realism requires recorded, preferably multisampled instruments.
    Electronic genres require intentional synthesis, not an acoustic sound quota.

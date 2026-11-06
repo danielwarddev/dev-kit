@@ -6,43 +6,5 @@
     "sha256": "808295345d43c9c428f3fa87d29fbf97a9926f356df95559ff2689f3bd4072d7",
     "license": "LGPL-2.1-or-later",
     "source": "https://github.com/FluidSynth/fluidsynth"
-  },
-  "banks": [
-    {
-      "id": "fluidr3",
-      "name": "FluidR3 GM",
-      "version": "3.1 (Debian package 3.1-5.3)",
-      "file": "FluidR3_GM.sf2",
-      "fileSha256": "74594e8f4250680adf590507a306655a299935343583256f3b722c48a1bc1cb0",
-      "sizeBytes": 148398306,
-      "tags": ["general-midi", "acoustic", "orchestral", "choir", "synth"],
-      "strengths": ["Broad GM coverage for mixed acoustic/electronic arrangements"],
-      "presetCoverage": { "gmPrograms": 128, "percussion": true },
-      "format": "debian",
-      "url": "https://deb.debian.org/debian/pool/main/f/fluid-soundfont/fluid-soundfont-gm_3.1-5.3_all.deb",
-      "sha256": "6f531493ac4e4d9772fd96b2488ea1790af81c196135fbdd25997da0781fc60e",
-      "license": "MIT for the extracted SoundFont; Debian packaging has separate GPL terms",
-      "credit": "Frank Wen and contributors; packaging by Toby Smithe",
-      "licenseSource": "https://sources.debian.org/src/fluid-soundfont/3.1-5.3/debian/copyright/",
-      "note": "This uses the original SF2 distribution, not the differently licensed MIDI.js pre-rendered samples."
-    },
-    {
-      "id": "generaluser",
-      "name": "GeneralUser GS",
-      "version": "2.0.3",
-      "file": "GeneralUser-GS.sf2",
-      "fileSha256": "9575028c7a1f589f5770fccc8cff2734566af40cd26ed836944e9a5152688cfe",
-      "sizeBytes": 32319396,
-      "tags": ["general-midi", "compact", "gs-compatible", "retro", "detailed-modulation"],
-      "strengths": ["Broad GM/GS coverage in a compact bank with detailed instrument programming"],
-      "presetCoverage": { "gmPrograms": 128, "percussion": true },
-      "format": "sf2",
-      "url": "https://raw.githubusercontent.com/mrbumpy409/GeneralUser-GS/684543d5e5efaef08d02be50dcda8d552478fa60/GeneralUser-GS.sf2",
-      "gitBlobSha1": "298b552d2e9d1307e03e5c5c99d2c046aaed9ec3",
-      "license": "GeneralUser GS license v2.0: private/commercial music creation permitted",
-      "credit": "S. Christian Collins",
-      "licenseSource": "https://raw.githubusercontent.com/mrbumpy409/GeneralUser-GS/684543d5e5efaef08d02be50dcda8d552478fa60/documentation/LICENSE.txt",
-      "note": "The author discloses uncertainty about some inherited sample origins. Review before commercial shipping or bank redistribution; do not describe it as CC0 or fully provenance-cleared."
-    }
-  ]
+  }
 }

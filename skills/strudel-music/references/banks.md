@@ -12,8 +12,8 @@ for it. Match banks to the emotional/genre brief and inspect their licenses.
 | `render-soundfont.mjs` | Actual Strudel note patterns exported to MIDI and rendered by native FluidSynth with SF2 banks; preserves native bank programming, loops, envelopes and modulators |
 
 Do not flatten a complex SoundFont into a handful of raw samples and present
-that as faithful bank playback. GeneralUser GS specifically depends on proper
-SoundFont synthesis for its programmed behavior.
+that as faithful bank playback. Banks with detailed programming (modulators,
+layered presets, loops) depend on proper SoundFont synthesis.
 
 The MIDI route maps note pitches, velocities, durations/`clip`, and Strudel
 orbits to explicit instrument tracks. It does not translate arbitrary Web Audio
@@ -21,7 +21,7 @@ effects, FM, filter automation, or ADSR parameters. Use SoundFont articulation
 and MIDI track controls instead. The source remains a Strudel pattern, but its
 `orbit` identifiers are instrument tracks in this route, not browser sounds.
 
-## Included alternate banks
+## Shared bank library
 
 The shared catalog is `~\.strudel-skill-soundfonts\banks.json`, alongside the
 actual SF2 files and license texts. On Windows this normally means
@@ -30,34 +30,73 @@ actual SF2 files and license texts. On Windows this normally means
 The skill stays project-local; only SoundFont assets/catalog are shared between
 projects. Native FluidSynth binaries remain in the ignored `scripts\.cache`.
 
-`scripts\soundfont-resources.json` holds the pinned native renderer specification
-and a small trusted starter catalog for user-approved initial setup. It is not
-the active per-song bank list. Preflight is read-only; rendering stops if the shared
-folder/catalog is missing or no registered SF2 files are present.
-The skill must ask the user whether they want to get some, and wait for their
-decision before any initialization or download. An existing shared catalog is
-authoritative: do not overwrite its edits or synchronize duplicate tag lists
-per project. Do not commit or embed banks into the game by default.
+`scripts\soundfont-resources.json` holds only the pinned native renderer
+specification. The skill ships no banks and no bank recommendations: which
+banks to use is a per-library, per-song decision. Preflight is read-only;
+rendering stops if the shared folder/catalog is missing or no registered SF2
+files are present. The skill must ask the user whether they want to get some,
+and wait for their decision before any initialization or download. An existing
+shared catalog is authoritative: do not overwrite its edits or synchronize
+duplicate tag lists per project. Do not commit or embed banks into the game by
+default.
 
-- **FluidR3 GM 3.1:** original SF2 from the verified Debian package; the extracted
-  SoundFont is MIT-licensed. Credit Frank Wen and contributors, retain the
-  copyright/license when redistributing the font. Do not confuse this with
-  MIDI.js pre-rendered editions that have different stated licensing.
-- **GeneralUser GS 2.0.3:** author permits private/commercial music creation.
-  The custom license discloses uncertainty about some inherited sample origins.
-  Treat it as an audition/prototype option, not a claim of cleared commercial
-  provenance; review before shipping or redistributing the bank. Its custom
-  license needs a user alert under the license review in `SKILL.md`.
+### Choosing and registering a bank
 
-Other SF2 banks can be added to the shared catalog after verifying source,
-checksum, and rights, applying the license review in `SKILL.md`. Entries carry a stable `id`, relative SF2 `file`, `tags`,
-`strengths`, `presetCoverage`, version, download URL/format, integrity checks,
-size and licensing/provenance. `fileSha256` describes the extracted SF2;
+Use this when the library is missing or empty, or when no registered bank suits
+the song's instrument roles or character:
+
+1. Infer the needed coverage and character from the brief: full GM ensemble,
+   specialist piano or orchestral section, drum kit, chip/retro synth, and so
+   on. Search for candidate SF2 banks from their original publisher. Prefer
+   versioned, pinnable downloads (release assets, commit-pinned raw URLs,
+   distribution packages) over mirrors and re-uploads.
+2. Apply the license review in `SKILL.md` to each candidate, including any
+   provenance concerns the publisher discloses.
+3. Use `ask_user` once with the proposed bank(s): source, version, license,
+   any license alerts, download size, and why each fits. Wait for approval.
+4. After approval, run setup without `-BankId` to create an empty catalog (if
+   absent) and the local renderer.
+5. Download each approved resource to a task-owned temporary directory and
+   compute SHA-256 hashes of the download and of the SF2 inside it. Add the
+   entry to `banks.json`, delete the temporary download, then run setup with
+   `-BankId` so it fetches, verifies, and caches the bank and its license text.
+
+Entries carry a stable `id`, relative SF2 `file`, `tags`, `strengths`,
+`presetCoverage`, version, download URL/format, integrity checks, size and
+licensing/provenance. Base tags and strengths on the publisher's documentation
+and preset list, not the filename. `fileSha256` describes the extracted SF2;
 `sha256` describes the downloaded resource, which may be an archive. A catalog
 can list banks that are not downloaded: determine availability from the file,
 not a stored `installed` flag. The renderer takes the shared catalog ID.
-Archived SF2 downloads use `format: "archive"`, `archiveFile`, and optional
-`licenseFile` member names, with the archive's SHA-256 pinned in `sha256`.
+
+```json
+{
+  "id": "gm-bank",
+  "name": "PUBLISHER BANK NAME",
+  "version": "VERSION",
+  "file": "Bank.sf2",
+  "fileSha256": "SHA256_OF_THE_SF2",
+  "sizeBytes": 0,
+  "tags": ["general-midi", "acoustic"],
+  "strengths": ["What this bank does well, from its documentation"],
+  "presetCoverage": { "gmPrograms": 128, "percussion": true },
+  "format": "sf2",
+  "url": "https://PINNED_DOWNLOAD_URL",
+  "sha256": "SHA256_OF_THE_DOWNLOAD",
+  "license": "LICENSE NAME AND KEY TERMS",
+  "credit": "AUTHORS",
+  "licenseSource": "https://PINNED_LICENSE_URL"
+}
+```
+
+Download formats:
+
+| `format` | Download | SF2 and license |
+|---|---|---|
+| `sf2` | The SF2 itself; pin `sha256`, `gitBlobSha1`, or `fileSha256` | License text is fetched from `licenseSource` |
+| `archive` | Zip/tar archive; pin `sha256` | `archiveFile` and optional `licenseFile` member names; otherwise `licenseSource` |
+| `debian` | `.deb` package; pin `sha256` | `archiveFile` path inside the package data (default `usr/share/sounds/sf2/FILE`) and optional `licenseFile`; otherwise `licenseSource` |
+
 Setup extracts only the selected bank/license into a task-owned temporary
 directory and verifies the resulting SF2 before caching it.
 
@@ -88,17 +127,17 @@ Use `ask_user` for this decision; do not continue composing, invoke setup, or
 silently bypass the question with synthesis. If the user declines, stop.
 
 After the user approves acquisition, Windows with PowerShell 7 can explicitly
-initialize the starter catalog/local renderer:
+initialize an empty catalog and the local renderer:
 
 ```powershell
 & "SKILL_DIRECTORY\scripts\setup-soundfonts.ps1"
 ```
 
-This seeds the bank-only catalog if absent; it does not eagerly download fonts.
-To acquire an approved known bank explicitly:
+This creates the catalog if absent; it does not register or download banks.
+After registering an approved bank (see above), acquire it explicitly:
 
 ```powershell
-& "SKILL_DIRECTORY\scripts\setup-soundfonts.ps1" -BankId generaluser
+& "SKILL_DIRECTORY\scripts\setup-soundfonts.ps1" -BankId BANK_ID
 ```
 
 `STRUDEL_SOUNDFONT_DOWNLOADS=0` disables automatic bank/renderer downloads.
@@ -120,9 +159,9 @@ Write Strudel patterns with `note(...)`, `velocity(...)`, `clip(...)` and distin
 
 ```json
 {
-  "bankId": "fluidr3",
+  "bankId": "gm-bank",
   "midiTracks": [
-    { "orbit": 1, "channel": 1, "program": 27, "bankId": "generaluser", "volume": 90, "pan": 60, "reverb": 20 },
+    { "orbit": 1, "channel": 1, "program": 27, "bankId": "guitar-bank", "volume": 90, "pan": 60, "reverb": 20 },
     { "orbit": 2, "channel": 10, "program": 0, "volume": 85, "pan": 64, "reverb": 10 }
   ]
 }
@@ -176,8 +215,8 @@ releases an engaged pedal at the music end. If a recipe explicitly doubles a
 non-looping render, duplicate its automation too; excerpts need rebased times.
 
 Controller behavior beyond standard pedal/volume/effects depends on the bank
-and engine. Do not assume CC72/73/74 alter release, attack or brightness: the
-bundled banks do not define those CC-to-envelope/filter modulators. Softer note
+and engine. Do not assume CC72/73/74 alter release, attack or brightness: many
+banks do not define those CC-to-envelope/filter modulators. Softer note
 velocities, an appropriate preset, and real audio processing are preferable to
 claiming an unsupported envelope change.
 
@@ -197,8 +236,8 @@ the previous renderer behavior. Keep excessive reverb/chorus from obscuring
 the phrase or bass.
 
 ```powershell
-node "SKILL_DIRECTORY\scripts\render-soundfont.mjs" "OUTPUT\cue.strudel.js" "OUTPUT\cue.json" "OUTPUT" fluidr3
-node "SKILL_DIRECTORY\scripts\render-soundfont.mjs" "OUTPUT\cue.strudel.js" "OUTPUT\cue.json" "OUTPUT" generaluser
+node "SKILL_DIRECTORY\scripts\render-soundfont.mjs" "OUTPUT\cue.strudel.js" "OUTPUT\cue.json" "OUTPUT" gm-bank
+node "SKILL_DIRECTORY\scripts\render-soundfont.mjs" "OUTPUT\cue.strudel.js" "OUTPUT\cue.json" "OUTPUT" other-bank
 ```
 
 The CLI default is optional when metadata provides the bank assignments.
@@ -217,6 +256,4 @@ and engine identical; change only the bank. Compare MIDI hashes and match
 loudness so "louder" is not mistaken for "better." Use a short representative
 passage, not a full new song for every option.
 
-References: https://www.fluidsynth.org/wiki/UserManual/,
-https://github.com/mrbumpy409/GeneralUser-GS,
-https://sources.debian.org/src/fluid-soundfont/3.1-5.3/debian/copyright/.
+Reference: https://www.fluidsynth.org/wiki/UserManual/.

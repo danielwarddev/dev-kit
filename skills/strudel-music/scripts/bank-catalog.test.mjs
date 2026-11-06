@@ -45,7 +45,7 @@ test('catalog initialization is explicit and an empty library requires user cons
     const saved = JSON.parse(await readFile(catalog.catalogPath, 'utf8'));
     assert.equal(saved.schemaVersion, 1);
     assert.equal(saved.renderer, undefined);
-    assert.ok(saved.banks.length && saved.banks.every(bank => bank.tags.length));
+    assert.deepEqual(saved.banks, []);
     assert.deepEqual(catalog.availableBankIds, []);
     await assert.rejects(loadBankCatalog(directory), error => error.code === 'SOUNDFONTS_UNAVAILABLE');
     assert.deepEqual(await readdir(directory), ['banks.json']);
@@ -57,7 +57,7 @@ test('missing folder or catalog stops without creation or downloads even when do
     const missing = path.join(directory, 'absent');
     await withEnvironment(missing, async () => {
       process.env.STRUDEL_SOUNDFONT_DOWNLOADS = '1';
-      await assert.rejects(prepareSoundfont('fluidr3'), error => {
+      await assert.rejects(prepareSoundfont('soft'), error => {
         assert.equal(error.code, 'SOUNDFONTS_UNAVAILABLE');
         assert.match(error.message, /ask the user.*get some SoundFonts/);
         return true;

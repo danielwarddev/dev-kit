@@ -31,10 +31,9 @@ export async function initializeBankCatalog(directory = bankDirectory()) {
   directory = path.resolve(directory);
   const catalogPath = path.join(directory, 'banks.json');
   if (!await exists(catalogPath)) {
-    const starter = JSON.parse(await readFile(path.join(scriptDirectory, 'soundfont-resources.json'), 'utf8'));
     await mkdir(directory, { recursive: true });
     try {
-      await writeFile(catalogPath, `${JSON.stringify({ schemaVersion: 1, banks: starter.banks }, null, 2)}\n`, { flag: 'wx' });
+      await writeFile(catalogPath, `${JSON.stringify({ schemaVersion: 1, banks: [] }, null, 2)}\n`, { flag: 'wx' });
     } catch (error) {
       if (error.code !== 'EEXIST') throw error;
     }
