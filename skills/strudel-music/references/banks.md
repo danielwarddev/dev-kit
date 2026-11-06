@@ -6,6 +6,8 @@ for it. Match banks to the emotional/genre brief and inspect their licenses.
 
 ## Two rendering routes
 
+Choose one per cue using the route table in `SKILL.md` (music workflow step 3).
+
 | Route | Use / limitations |
 |---|---|
 | `render.mjs` | Strudel's own Web Audio synths and explicitly registered sample maps; supports its audio effects |
@@ -123,8 +125,9 @@ node "SKILL_DIRECTORY\scripts\bank-catalog.mjs"
 If this fails because the library is missing/empty, stop and ask the user if they
 would like to get SoundFonts. A missing or invalid catalog must not be replaced
 without approval, even if unregistered font files exist nearby.
-Use `ask_user` for this decision; do not continue composing, invoke setup, or
-silently bypass the question with synthesis. If the user declines, stop.
+Use `ask_user` for this decision, offering the browser route as an alternative
+and stating what it would lose; do not continue composing, invoke setup, or
+silently switch routes. If the user declines both, stop.
 
 After the user approves acquisition, Windows with PowerShell 7 can explicitly
 initialize an empty catalog and the local renderer:

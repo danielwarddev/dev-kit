@@ -29,17 +29,7 @@ this skill's directory, not the project directory.
 
 1. Read `references\genres.md`, `references\composition.md`, and the relevant rows in
    `references\instruments.md`. Read `references\rendering.md` before rendering.
-   Read `references\banks.md` when using or comparing alternate SoundFont banks.
-   Before composing each new song, inspect the user-folder `banks.json` and
-   available SF2 files with `node "SKILL_DIRECTORY\scripts\bank-catalog.mjs"`.
-   This is read-only. If the folder/catalog is missing or unusable, or no
-   registered SoundFonts are present, stop and use `ask_user` to ask whether the
-   user would like to get some. Do not create a catalog, download banks, continue
-   with an empty library, or silently switch to synthesis before that decision.
-   If they decline, stop. If they agree, follow "Choosing and registering a
-   bank" in `references\banks.md`: the skill ships no banks, so propose
-   candidates that fit this song and get approval of sources, licenses and
-   sizes before invoking setup. Preserve existing user files.
+   Read `references\banks.md` when using or comparing SoundFont banks.
 2. Ask internally: what emotions should the player feel, what is underneath
    those emotions, and how should they change through the cue? Infer this from
    the prompt, gameplay purpose, and game context; do not make it a repeated
@@ -58,7 +48,32 @@ this skill's directory, not the project directory.
    default to one instrumental cue around 60-90 seconds, a modest arrangement,
    and `loop: true`. Honor an explicit non-looping request; stingers and isolated
    auditions are normally non-looping. Do not generate multiple candidates unless asked.
-3. Make the composition decisions in `references\composition.md` before writing
+3. Choose one render route for the cue from the sounds and effects its brief
+   needs. Both routes start from the same Strudel pattern:
+
+   | Route | Sounds | Effects | Choose for |
+   |---|---|---|---|
+   | Browser (`render.mjs`) | Strudel synths and explicitly registered sample maps | All Strudel effects: filters and sweeps, delay, reverb, FM, envelopes, automation | Electronic, synth, chiptune and ambient music; cues whose character depends on Strudel effects or modulation |
+   | SoundFont (`render-soundfont.mjs`) | Presets from registered SF2 banks, with their velocity layers, loops and envelopes | MIDI controls only: volume, pan, reverb/chorus sends, CC automation | Realistic acoustic instruments: orchestral, piano, guitar, choir, acoustic band |
+
+   A render uses one route. If a cue needs both realistic acoustic parts and
+   Strudel-processed synths, choose the route that serves its foreground and
+   core identity, cover the rest within that route (bank synth presets, or
+   recorded sample maps in the browser), and mention the trade-off on delivery.
+   Record the chosen route and why in `musicalDesign`.
+   For the SoundFont route only, inspect the user-folder `banks.json` and
+   available SF2 files with `node "SKILL_DIRECTORY\scripts\bank-catalog.mjs"`
+   before composing. This is read-only. The browser route needs no SoundFonts;
+   do not run or block on this check for it. If the folder/catalog is missing
+   or unusable, or no registered SoundFonts are present, stop and use `ask_user`
+   to ask whether the user would like to get some, offering the browser route
+   as an alternative and stating what it would lose. Do not create a catalog,
+   download banks, or switch routes before that decision. If they decline both,
+   stop. If they want SoundFonts, follow "Choosing and registering a bank" in
+   `references\banks.md`: the skill ships no banks, so propose candidates that
+   fit this song and get approval of sources, licenses and sizes before
+   invoking setup. Preserve existing user files.
+4. Make the composition decisions in `references\composition.md` before writing
    the full arrangement. First sketch the primary hook/phrase by itself:
    a melody, riff, chordal gesture, or other recognizable identity. Make it
    communicate one coherent thought before filling bars with accompaniment.
@@ -74,9 +89,8 @@ this skill's directory, not the project directory.
    Do not let the last cue, sample cache, or previously used bank become a sonic
    template. Find and register additional licensed instruments when needed.
    Consider the sound library itself, not only instrument names in VCSL/VSCO.
-   A different bank can change tone substantially; use the native SoundFont
-   route when its programming matters instead of approximating it with raw samples.
-   Re-evaluate the shared catalog's tags, strengths and preset coverage for this
+   A different bank can change tone substantially. On the SoundFont route,
+   re-evaluate the shared catalog's tags, strengths and preset coverage for this
    song's emotion, genre and instrument roles, even within the same game. Choose
    one bank or a small palette of banks: both are valid. Assign each part to its
    chosen bank/preset rather than layering every bank, forcing multiple banks,
@@ -88,7 +102,7 @@ this skill's directory, not the project directory.
    Acoustic realism requires recorded, preferably multisampled instruments.
    Electronic genres require intentional synthesis, not an acoustic sound quota.
    Do not silently substitute basic oscillators for requested acoustic sounds.
-4. Compose the entire cue using separately editable parts and explicit section
+5. Compose the entire cue using separately editable parts and explicit section
    lengths. Develop musical material rather than repeating one bar with more
    layers or inventing unrelated foreground notes in every bar. Establish the
    hook clearly, let it return recognizably, and vary selected aspects rather
@@ -127,7 +141,7 @@ this skill's directory, not the project directory.
    For a requested new direction, run the contrast check in `references\genres.md`:
    compare foreground/backing families, motif/phrasing, harmony, and groove with
    the previous cue. Redesign if the distinction is mainly tempo or labels.
-5. Save standalone REPL-compatible `NAME.strudel.js` and `NAME.json` metadata.
+6. Save standalone REPL-compatible `NAME.strudel.js` and `NAME.json` metadata.
    Include explicit sample registration in the source; the browser REPL's
    preloaded sounds are not available in the bundled renderer. Register only the
    sounds needed, with pitch maps for pitched recordings. Resolve current API
@@ -154,8 +168,8 @@ this skill's directory, not the project directory.
    `midiTracks[].bankId` overrides. Record each chosen bank's role and why it
    fits this song; do not assign one bank permanently to a game or require one
    different bank per track.
-6. Use `render.mjs` for Web Audio/sample maps or `render-soundfont.mjs` for native
-   SF2 banks, following their respective references. Run the renderer and fix
+7. Render with the route chosen in step 3: `render.mjs` for the browser route or
+   `render-soundfont.mjs` for SoundFonts, following their respective references. Run the renderer and fix
    errors and failed checks autonomously; do not
    ask the user to listen to successive drafts. Keep corrective attempts bounded
    (normally two). Do not replace Strudel with an unrelated synthesis script.
@@ -174,7 +188,7 @@ this skill's directory, not the project directory.
    missing assets explicitly rather than changing banks silently. Preserve user
    catalog edits and fonts. Multi-bank stems share one timeline and warmup;
    balance parts and normalize only the combined mix, not each bank separately.
-7. Deliver WAV, editable source, and the generated validation report. Add OGG
+8. Deliver WAV, editable source, and the generated validation report. Add OGG
    only when useful for the destination. Put outputs in a clearly named project
    music-prototype directory unless the user specifies another location. Never
    replace existing music or wire engine behavior without being asked.
