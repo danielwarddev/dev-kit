@@ -325,7 +325,8 @@ class ScriptTests(unittest.TestCase):
                 skills = root / ".claude" / "skills"
                 self.assertEqual(
                     sorted(path.name for path in skills.iterdir()),
-                    ["aseprite", "csharp-standards", "feature-specs", "godot-engine", "godot-playtesting"],
+                    ["aseprite", "csharp-standards", "feature-specs", "godot-engine",
+                     "godot-playtesting", "pixel-art-design", "strudel-music"],
                 )
                 self.assertEqual(list(skills.rglob("__pycache__")), [])
                 for filename in ("AGENTS.md", "CLAUDE.md", "Directory.Build.props"):

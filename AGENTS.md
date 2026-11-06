@@ -38,6 +38,15 @@ files merely to validate source changes.
 - Keep framework-specific rules in their owning skill rather than general
   language guidance.
 - Verify relative links after edits.
+- When importing a skill from a project, copy only its Git-tracked files
+  (`git ls-files`); project copies can hold ignored dependencies and caches.
+- When adding or removing a skill, update the mode-specific `skills=` lists in
+  `scripts\apply-project-files`, the expected skill list in
+  `scripts\tests\test_scripts.py`, the root README's skill table and "Shared
+  configuration" row, and the intro of `skills\README.md`.
+- Skill copy exclusions are duplicated in `scripts\apply-project-files` (`tar
+  --exclude`), `scripts\sync-skills_Resources\sync.py`, and `install.py`
+  (`deploy_files`); keep all three in sync.
 
 ## Source and Local Deployment
 

@@ -53,6 +53,7 @@ def transfer(source_skills, source_config, destination_skills, destination_confi
     destination_config.mkdir(parents=True, exist_ok=True)
     ignore = shutil.ignore_patterns(
         "__pycache__", "*.pyc", "*.pyo", ".git", "settings.local.json",
+        "node_modules", ".cache", ".venv",
     )
     with tempfile.TemporaryDirectory(
         prefix=".sync-skills-", dir=destination_skills.parent,

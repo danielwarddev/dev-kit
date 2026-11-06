@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "status": "draft",
+  "project": null,
+  "purpose": "prototype art preferences, not runtime game configuration",
+  "detail": {
+    "actors": "Prioritize silhouette, defining features, coherent planes, and restrained material cues.",
+    "terrain": "Quiet major masses and connected clusters; reserve strong contrast for actors."
+  },
+  "animation": {
+    "frame_budget": "Use the fewest distinct poses that communicate the action, not a fixed frame count.",
+    "physical_story": "Support, load, drive, travel/contact, follow-through, braking, and settling.",
+    "pose_rule": "Pelvis, chest, shoulders, and head participate; do not animate limbs around a rigid trunk."
+  },
+  "delivery": {
+    "masters": "Editable RGBA Aseprite files.",
+    "sprites": "Preserve transparent canvas and partial-alpha shadows.",
+    "scenes": "Composite source-over; complete-ground previews remain opaque.",
+    "inspection": "Native size plus integer nearest-neighbor enlargement.",
+    "canvas": "Allow transparent margins for equipment and motion; keep pixel density unchanged."
+  }
+}

@@ -193,7 +193,7 @@ def deploy_files(destination):
     destination.parent.mkdir(parents=True, exist_ok=True)
     ignore = shutil.ignore_patterns(
         "__pycache__", "*.pyc", "*.pyo", "bin", "obj", ".git", ".vs", ".idea",
-        "settings.local.json", "*.user",
+        "settings.local.json", "*.user", "node_modules", ".cache", ".venv",
     )
     with tempfile.TemporaryDirectory(prefix=".dward-dev-kit-stage-", dir=destination.parent) as directory:
         stage = Path(directory) / "snapshot"

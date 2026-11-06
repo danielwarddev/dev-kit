@@ -26,7 +26,7 @@ copy_missing() {
     else
         mkdir -p "$(dirname "$destination")"
         if [[ -d "$source" ]]; then
-            local exclusions=(--exclude=__pycache__ --exclude='*.pyc' --exclude='*.pyo')
+            local exclusions=(--exclude=__pycache__ --exclude='*.pyc' --exclude='*.pyo' --exclude=node_modules --exclude=.cache --exclude=.venv)
             if [[ "$mode" != "--godot" && "$source" == "$kit_dir/skills/csharp-standards" ]]; then
                 exclusions+=(--exclude=./references/godot-development.md)
             fi
@@ -47,7 +47,7 @@ for name in .editorconfig Directory.Build.props AGENTS.md CLAUDE.md; do
 done
 skills=(csharp-standards feature-specs)
 if [[ "$mode" == "--godot" ]]; then
-    skills+=(aseprite godot-engine godot-playtesting)
+    skills+=(aseprite godot-engine godot-playtesting pixel-art-design strudel-music)
 elif [[ "$mode" == "--blazor" ]]; then
     skills+=(blazor-frontend)
 fi
