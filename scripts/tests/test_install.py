@@ -85,7 +85,7 @@ class InstallTests(unittest.TestCase):
         (source / "scripts" / "tests").mkdir()
         (source / "config" / "AGENTS.md").write_text("instructions", encoding="utf-8")
         (source / "skills" / "__pycache__").mkdir()
-        destination = self.root / "custom scripts" / "dward-dev-kit"
+        destination = self.root / ".dward dev kit"
         with patch.object(installer, "KIT", source):
             installer.deploy_files(destination)
             command.write_text("second", encoding="utf-8")
@@ -99,7 +99,7 @@ class InstallTests(unittest.TestCase):
         self.assertEqual((destination / "config" / "AGENTS.md").read_text(), "instructions")
 
     def test_deployment_refuses_unmanaged_directories_and_checkout_paths(self):
-        destination = self.root / "custom scripts" / "dward-dev-kit"
+        destination = self.root / ".dward dev kit"
         destination.mkdir(parents=True)
         sentinel = destination / "keep"
         sentinel.write_text("unrelated", encoding="utf-8")
@@ -110,12 +110,22 @@ class InstallTests(unittest.TestCase):
             installer.validate_deployment(KIT / "deployment")
 
     def test_windows_path_preserves_unrelated_entries_and_removes_duplicates(self):
-        destination = Path(r"C:\CustomScripts\dward-dev-kit")
+        destination = Path(r"C:\Users\me\.dward-dev-kit")
         previous = Path(r"C:\repos\dev-kit\scripts")
         current = f"C:\\Other;{previous};{destination};{destination}\\"
         updated = installer.windows_path_entries(current, destination, previous)
         self.assertEqual(updated, f"C:\\Other;{destination}")
         self.assertEqual(installer.windows_path_entries(updated, destination, previous), updated)
+
+    def test_windows_path_removes_old_deployment_locations(self):
+        old = self.root / "OneDrive" / "CustomScripts" / "dward-dev-kit"
+        old.mkdir(parents=True)
+        (old / ".dev-kit-deployment").write_text("dward-dev-kit\n", encoding="utf-8")
+        unrelated = old.parent
+        destination = self.root / ".dward-dev-kit"
+        current = f"{unrelated};{old}"
+        updated = installer.windows_path_entries(current, destination, Path(r"C:\repos\dev-kit\scripts"))
+        self.assertEqual(updated, f"{unrelated};{destination}")
 
     @unittest.skipUnless(BASH and shutil.which("dotnet"), "Requires Bash and .NET")
     def test_install_repairs_partial_setup_and_repeats_without_duplicates(self):
@@ -129,10 +139,10 @@ class InstallTests(unittest.TestCase):
         config = self.root / "NuGet.Config"
         feed = self.root / "feed"
         profile = self.root / "profile"
-        custom_scripts = self.root / "custom scripts"
-        custom_scripts.mkdir()
-        (custom_scripts / "unrelated").write_text("keep", encoding="utf-8")
-        destination = custom_scripts / "dward-dev-kit"
+        user_home = self.root / "user home"
+        user_home.mkdir()
+        (user_home / "unrelated").write_text("keep", encoding="utf-8")
+        destination = user_home / ".dward-dev-kit"
         if partial:
             config.write_text(
                 '<configuration><!--keep--><packageSources>'
@@ -147,13 +157,12 @@ class InstallTests(unittest.TestCase):
         cli_home = self.root / "cli home"
         command = '''
             export DOTNET_CLI_HOME="$(native_path "$5")"
-            export DOTNET_ADD_GLOBAL_TOOLS_TO_PATH=false
-            bash "$(native_path "$1")" --nuget-config "$2" --feed "$3" --profile "$4" --custom-scripts "$6" --no-user-path
+            bash "$(native_path "$1")" --nuget-config "$2" --feed "$3"                         --profile "$4" --destination "$6" --no-user-path
         '''
         snapshots = None
         for _ in range(2):
             result = run_bash(
-                self.root, command, KIT / "install", config, feed, profile, cli_home, custom_scripts,
+                            self.root, command, KIT / "install", config, feed, profile, cli_home, destination,
                 timeout=600,
             )
             self.assert_succeeded(result)
@@ -185,7 +194,7 @@ class InstallTests(unittest.TestCase):
                 self.assertIn("<!--keep-->", config.read_text())
             self.assertEqual(profile.read_text().count(installer.START), 1)
             self.assertIn("export CUSTOM_SETTING=keep", profile.read_text())
-            self.assertEqual((custom_scripts / "unrelated").read_text(), "keep")
+            self.assertEqual((user_home / "unrelated").read_text(), "keep")
             self.assertTrue((destination / "new-ai-ready-library").is_file())
             self.assertNotIn(str(KIT / "scripts"), profile.read_text())
             current = {path: path.read_bytes() for path in [config, profile, *feed.glob("*.nupkg")]}

@@ -15,6 +15,7 @@ BASH = (
 ENVIRONMENT = os.environ | {
     "MSBUILDDISABLENODEREUSE": "1",
     "DOTNET_CLI_USE_MSBUILD_SERVER": "0",
+    "DOTNET_ADD_GLOBAL_TOOLS_TO_PATH": "false",
     "UseSharedCompilation": "false",
 }
 LOCAL_GIT = '''

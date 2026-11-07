@@ -5,7 +5,7 @@
 #    NuGet feed (defaults to ~/.nuget/local-feed/Dward).
 # 3. Add or repair the enabled DwardLocal NuGet source and Dward.* source mapping,
 #    preserving unrelated configuration.
-# 4. Deploy a snapshot to CustomScripts/dward-dev-kit and register its templates.
+# 4. Deploy a snapshot to ~/.dward-dev-kit and register its templates.
 # 5. Add the deployed scripts to Windows user PATH and maintain a nonduplicating
 #    PATH block in .bashrc and the applicable Bash login profile.
 # 6. Report missing optional Godot, GitHub CLI, and Aseprite tools without failing.
@@ -243,8 +243,15 @@ def windows_path_entries(current, destination, previous):
     def normalized(value):
         return os.path.normcase(os.path.normpath(value.rstrip("\\/")))
 
+    def old_deployment(value):
+        expanded = Path(os.path.expandvars(value.strip('"')))
+        return (expanded / ".dev-kit-deployment").is_file()
+
     remove = {normalized(str(destination)), normalized(str(previous))}
-    entries = [value for value in current.split(";") if value and normalized(value) not in remove]
+    entries = [
+        value for value in current.split(";")
+        if value and normalized(value) not in remove and not old_deployment(value)
+    ]
     return ";".join([*entries, str(destination)])
 
 
@@ -288,7 +295,7 @@ def install(args):
         raise ValueError(f".NET SDK 10 or later is required; the active SDK is {sdk}.")
     config = args.nuget_config.expanduser().resolve()
     feed = args.feed.expanduser().resolve()
-    destination = args.custom_scripts.expanduser().resolve() / "dward-dev-kit"
+    destination = args.destination.expanduser().resolve()
     validate_deployment(destination)
     profiles = (
         [path.expanduser().resolve() for path in args.profile]
@@ -343,9 +350,8 @@ def main():
     parser.add_argument("--nuget-config", type=Path, default=default_config)
     parser.add_argument("--feed", type=Path, default=Path.home() / ".nuget" / "local-feed" / "Dward")
     parser.add_argument(
-        "--custom-scripts", type=Path,
-        default=Path.home() / "OneDrive" / "CustomScripts" if os.name == "nt" else Path.home() / "CustomScripts",
-        help="Parent directory for the deployed dward-dev-kit snapshot.",
+        "--destination", type=Path, default=Path.home() / ".dward-dev-kit",
+        help="Directory the dev-kit snapshot is deployed to; replaced on each install.",
     )
     parser.add_argument("--no-user-path", action="store_true",
                         help="Skip Windows user PATH changes (Bash profiles are still updated).")

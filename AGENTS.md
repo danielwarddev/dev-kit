@@ -54,7 +54,7 @@ This Git checkout is the editable, version-controlled source: change and test
 skills, scripts, templates, and configuration here.
 
 Run the root `install` script to deploy those changes locally. It copies a snapshot
-into the configured CustomScripts parent under `dward-dev-kit`, registers templates
+into the configured destination (default `~\.dward-dev-kit`), registers templates
 from that snapshot, and installs analyzer packages into the configured local feed.
 The deployment is a copy, not a link to this checkout.
 

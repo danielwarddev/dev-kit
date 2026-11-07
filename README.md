@@ -30,8 +30,9 @@ bash install
 
 `install` runs `install.py`, which sets up everything in this repo on your local machine:
 
-- Creates a local folder (configurable; default is `~/OneDrive/CustomScripts/dward-dev-kit`) where everything will be "deployed" to so that it does not depend on the local repo
+- Creates a local folder (configurable; default is `~/.dward-dev-kit`) where everything will be "deployed" to so that it does not depend on the local repo. The folder is replaced on every install
 - Adds that folder to your PATH, `.bashrc`, and your Bash login profile
+- Removes Windows PATH entries for older dev-kit deployments (e.g. a previous `OneDrive/CustomScripts/dward-dev-kit`); the old folder itself is left for you to delete
 - Places everything except analyzers there - .NET templates, scripts, skills, and other files used by projects (like `.editorconfig` and `AGENTS.md`)
 - Installs the .NET templates
 - For the analyzers, sets up a local Nuget feed at ~/.nuget/local-feed/Dward. The analyzers are packed and put there and `DwardLocal` is registered as a Nuget source
@@ -41,7 +42,7 @@ bash install
 | Argument | Default | Description |
 | --- | --- | --- |
 | `-h`, `--help` | | Show installer usage and exit without installing. |
-| `--custom-scripts <directory>` | Windows: `~/OneDrive/CustomScripts`; other platforms: `~/CustomScripts` | Parent directory for the deployed `dward-dev-kit` folder. |
+| `--destination <directory>` | `~/.dward-dev-kit` | Folder the dev-kit snapshot is deployed to; replaced on each install. |
 | `--feed <directory>` | `~/.nuget/local-feed/Dward` | Local directory where analyzer NuGet packages are installed. |
 | `--nuget-config <file>` | Windows: `%APPDATA%\NuGet\NuGet.Config`; other platforms: `~/.nuget/NuGet/NuGet.Config` | NuGet configuration to register the local source and package mapping in. Custom locations must also be supplied to restores unless they are in the normal NuGet configuration hierarchy. |
 | `--profile <file>` | `.bashrc` plus the first existing `.bash_profile`, `.bash_login`, or `.profile`; creates `.bash_profile` if none exist | Bash profile to update; repeat this argument to update multiple files. |
@@ -59,7 +60,7 @@ Common skills I use across my .NET projects. Some are Godot-specific, so I use a
 | [godot-engine](skills/godot-engine/SKILL.md) | This is a skill port of [Coding-Solo/godot-mcp](https://github.com/Coding-Solo/godot-mcp). Perform actions with the Godot engine, like run engine commands, and manage projects, scenes, and resources. |
 | [godot-playtesting](skills/godot-playtesting/SKILL.md) | In contract to the godot-engine skill, this skill is for showing the AI agent how to run effective playtests and get the information it needs during them to see if things work as expected. Does not replace human testing! |
 | [pixel-art-design](skills/pixel-art-design/SKILL.md) | The `aseprite` skill instructs AI on how to use Aseprite's functions to create pixel art. By contrast, this skill instructs AI on how to *design* good pixel art (or good enough for prototypes, anyway). |
-| [strudel-music](skills/strudel-music/SKILL.md) | Requires Node.js. Instructs AI on both how to use [Strudel](https://strudel.cc) and how to design nice-sounding music and sound effects (again, nice enough for prototypes!) with it. Will look for and download to `~/.strudel-skill-soundfonts` multiple SoundFonts it can use to make music with. These are placed in your user folder so they aren't duplicated in each project, as they can add up in size. If the SoundFont license is not one that grants commercial permission to use, it will alert the user. |
+| [strudel-music](skills/strudel-music/SKILL.md) | Requires Node.js. Instructs AI on both how to use [Strudel](https://strudel.cc) and how to design nice-sounding music and sound effects (again, nice enough for prototypes!) with it. Will look for and download to `~/.strudel-skill-soundfonts` (configurable with `STRUDEL_SOUNDFONT_DIR`) multiple SoundFonts it can use to make music with. These are placed in your user folder, independent of the dev-kit, so they aren't duplicated in each project, as they can add up in size. If the SoundFont license is not one that grants commercial permission to use, it will alert the user. |
 
 ## Analyzers
 
