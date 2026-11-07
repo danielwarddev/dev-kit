@@ -32,7 +32,6 @@ bash install
 
 - Creates a local folder (configurable; default is `~/.dward-dev-kit`) where everything will be "deployed" to so that it does not depend on the local repo. The folder is replaced on every install
 - Adds that folder to your PATH, `.bashrc`, and your Bash login profile
-- Removes Windows PATH entries for older dev-kit deployments (e.g. a previous `OneDrive/CustomScripts/dward-dev-kit`); the old folder itself is left for you to delete
 - Places everything except analyzers there - .NET templates, scripts, skills, and other files used by projects (like `.editorconfig` and `AGENTS.md`)
 - Installs the .NET templates
 - For the analyzers, sets up a local Nuget feed at ~/.nuget/local-feed/Dward. The analyzers are packed and put there and `DwardLocal` is registered as a Nuget source

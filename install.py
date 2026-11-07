@@ -243,14 +243,10 @@ def windows_path_entries(current, destination, previous):
     def normalized(value):
         return os.path.normcase(os.path.normpath(value.rstrip("\\/")))
 
-    def old_deployment(value):
-        expanded = Path(os.path.expandvars(value.strip('"')))
-        return (expanded / ".dev-kit-deployment").is_file()
-
     remove = {normalized(str(destination)), normalized(str(previous))}
     entries = [
         value for value in current.split(";")
-        if value and normalized(value) not in remove and not old_deployment(value)
+        if value and normalized(value) not in remove
     ]
     return ";".join([*entries, str(destination)])
 

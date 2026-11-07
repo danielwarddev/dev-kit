@@ -117,16 +117,6 @@ class InstallTests(unittest.TestCase):
         self.assertEqual(updated, f"C:\\Other;{destination}")
         self.assertEqual(installer.windows_path_entries(updated, destination, previous), updated)
 
-    def test_windows_path_removes_old_deployment_locations(self):
-        old = self.root / "OneDrive" / "CustomScripts" / "dward-dev-kit"
-        old.mkdir(parents=True)
-        (old / ".dev-kit-deployment").write_text("dward-dev-kit\n", encoding="utf-8")
-        unrelated = old.parent
-        destination = self.root / ".dward-dev-kit"
-        current = f"{unrelated};{old}"
-        updated = installer.windows_path_entries(current, destination, Path(r"C:\repos\dev-kit\scripts"))
-        self.assertEqual(updated, f"{unrelated};{destination}")
-
     @unittest.skipUnless(BASH and shutil.which("dotnet"), "Requires Bash and .NET")
     def test_install_repairs_partial_setup_and_repeats_without_duplicates(self):
         self.verify_install(partial=True)
