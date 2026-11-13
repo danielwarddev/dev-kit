@@ -37,8 +37,11 @@ When_ComputeHash_Called_Then_Returns_Sha256_Hex_String
 - Assert observable values/state/output. Use `BeEquivalentTo` for several properties
   when clearer than individual assertions. Use `Received`/`DidNotReceive` only when
   the interaction itself is the behavior and cannot otherwise be observed.
-- Cover meaningful outcomes of changed decisions, including errors, empty, and
-  unavailable states.
+- Before declaring completion, cover all behavior introduced by the change,
+  including supporting validation, not just the current requirement's happy path.
+  Check relevant rejected inputs, empty/unavailable/boundary cases, and mixed
+  valid/invalid input. When skipping data, check that malformed data isn't silently
+  discarded. Don't chase branch coverage for its own sake.
 - Use theories for cases sharing one verification path. Expected values may vary,
   but flags must not branch assertions or expected-diagnostic setup; use separate
   named facts for diagnostic/no-diagnostic or otherwise different paths.

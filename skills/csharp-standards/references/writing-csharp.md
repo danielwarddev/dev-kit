@@ -35,10 +35,14 @@ Do not manufacture empty/default values for structurally missing required positi
 fail explicitly at the boundary.
 
 Nullable annotations provide compile-time analysis, not a runtime non-null guarantee.
-Avoid redundant guards inside trusted, annotated internal flows. Validate non-null
-requirements at public/external or unannotated boundaries when callers can supply
-null, and for required scene wiring. Fail with an actionable error rather than a
-silent default. Use nullable types when null is intentionally supported.
+Use nullable types when null is intentionally supported, and validate required scene
+wiring rather than silently substituting defaults.
+
+Avoid redundant null/argument guards when using the argument will already throw
+(e.g. `ThrowIfNull` before `new StringReader(value)`). Add a guard only to prevent
+significant wasted work or side effects before failure, or when invalid input could
+otherwise be accepted. A clearer exception type or parameter name alone does not
+justify a guard.
 
 ## Async and errors
 
