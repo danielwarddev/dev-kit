@@ -103,6 +103,25 @@ class ScriptTests(unittest.TestCase):
                     ))
                     self.assertEqual((skill / "SKILL.md").read_text(), "custom Blazor skill")
 
+    def test_defaults_include_mutation_testing_skill_in_every_mode(self):
+        source = KIT / "skills" / "mutation-testing"
+        for mode in ("", "--godot", "--blazor"):
+            with self.subTest(mode=mode):
+                target = self.root / (mode.lstrip("-") or "standard")
+                target.mkdir()
+                self.assert_succeeded(run_bash(
+                    self.root,
+                    'bash "$(native_path "$1")" "$(native_path "$2")" "${@:3}"',
+                    KIT / "scripts" / "apply-project-files", target,
+                    *([mode] if mode else []),
+                ))
+                skill = target / ".claude" / "skills" / "mutation-testing"
+                for file in source.rglob("*"):
+                    if file.is_file():
+                        self.assertEqual(
+                            (skill / file.relative_to(source)).read_bytes(), file.read_bytes(),
+                        )
+
     def test_defaults_preserve_existing_files_and_skill_directories(self):
         target = self.root / "existing project"
         target.mkdir()
@@ -172,7 +191,7 @@ class ScriptTests(unittest.TestCase):
                         self.assertEqual(
                             sorted(path.name for path in skills.iterdir()),
                             (["blazor-frontend"] if starter == "mudblazor" else [])
-                            + ["csharp-standards", "feature-specs"],
+                            + ["csharp-standards", "feature-specs", "mutation-testing"],
                         )
                         for skill in skills.iterdir():
                             source = KIT / "skills" / skill.name
@@ -327,7 +346,7 @@ class ScriptTests(unittest.TestCase):
                 self.assertEqual(
                     sorted(path.name for path in skills.iterdir()),
                     ["aseprite", "csharp-standards", "feature-specs", "godot-engine",
-                     "godot-playtesting", "pixel-art-design", "strudel-music"],
+                     "godot-playtesting", "mutation-testing", "pixel-art-design", "strudel-music"],
                 )
                 self.assertEqual(list(skills.rglob("__pycache__")), [])
                 for filename in ("AGENTS.md", "CLAUDE.md", "Directory.Build.props"):

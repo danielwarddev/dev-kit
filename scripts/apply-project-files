@@ -45,7 +45,7 @@ copy_missing() {
 for name in .editorconfig Directory.Build.props AGENTS.md CLAUDE.md; do
     [[ -f "$kit_dir/config/$name" ]] || { echo "Missing config/$name" >&2; exit 1; }
 done
-skills=(csharp-standards feature-specs)
+skills=(csharp-standards feature-specs mutation-testing)
 if [[ "$mode" == "--godot" ]]; then
     skills+=(aseprite godot-engine godot-playtesting pixel-art-design strudel-music)
 elif [[ "$mode" == "--blazor" ]]; then
